@@ -1,0 +1,22 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: kotvukai-daily-backup
+  namespace: velero
+spec:
+  schedule: "0 2 * * *"
+  template:
+    includedNamespaces:
+      - default
+    includedResources:
+      - deployments
+      - services
+      - secrets
+      - configmaps
+      - persistentvolumeclaims
+    labelSelector:
+      matchLabels:
+        app: kotvukai
+    storageLocation: default
+    ttl: 720h0m0s
+    snapshotVolumes: true
