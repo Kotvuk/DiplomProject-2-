@@ -1,4 +1,4 @@
-const MODEL_GROUPS = {
+var MODEL_GROUPS = {
   kimi: {
     model: 'moonshotai/kimi-k2-instruct-0905',
     name: 'Kimi K2',
@@ -58,18 +58,7 @@ const keyIndexes = {
   qwen: 0
 };
 
-const stats = {
-  totalRequests: 0,
-  byModel: {
-    kimi: { requests: 0, errors: 0, avgLatency: 0 },
-    deepseek: { requests: 0, errors: 0, avgLatency: 0 },
-    qwen: { requests: 0, errors: 0, avgLatency: 0 }
-  },
-  rateLimitsHit: 0,
-  fallbacks: 0
-};
-
-const FALLBACK_ORDER = ['kimi', 'deepseek', 'qwen'];
+var FALLBACK_ORDER = ['kimi', 'deepseek', 'qwen'];
 let currentFallbackIndex = 0;
 
 function getConfigForGroup(groupName) {
@@ -78,10 +67,10 @@ function getConfigForGroup(groupName) {
     return null;
   }
 
-  const index = keyIndexes[groupName];
-  const key = group.keys[index];
+  var idx = keyIndexes[groupName];
+  const key = group.keys[idx];
 
-  keyIndexes[groupName] = (index + 1) % group.keys.length;
+  keyIndexes[groupName] = (idx + 1) % group.keys.length;
 
   return {
     key,
@@ -99,8 +88,8 @@ function getNextConfig() {
   }
 
   for (const name of Object.keys(MODEL_GROUPS)) {
-    const group = MODEL_GROUPS[name];
-    if (group.keys.length > 0) {
+    var g = MODEL_GROUPS[name];
+    if (g.keys.length > 0) {
       return getConfigForGroup(name);
     }
   }
@@ -114,35 +103,18 @@ function getNextConfig() {
 }
 
 function handleRateLimit(currentGroup) {
-  stats.rateLimitsHit++;
-  stats.byModel[currentGroup].errors++;
-
   const currentIndex = FALLBACK_ORDER.indexOf(currentGroup);
   for (let i = 1; i < FALLBACK_ORDER.length; i++) {
-    const nextIndex = (currentIndex + i) % FALLBACK_ORDER.length;
+    var nextIndex = (currentIndex + i) % FALLBACK_ORDER.length;
     const nextGroup = FALLBACK_ORDER[nextIndex];
     if (MODEL_GROUPS[nextGroup].keys.length > 0) {
       currentFallbackIndex = nextIndex;
-      stats.fallbacks++;
       console.warn(`[Groq] Rate limit on ${currentGroup}, switching to ${nextGroup}`);
       return nextGroup;
     }
   }
 
   return null;
-}
-
-function updateStats(groupName, latency, success) {
-  stats.totalRequests++;
-  const modelStats = stats.byModel[groupName];
-  if (modelStats) {
-    modelStats.requests++;
-    if (!success) modelStats.errors++;
-
-    modelStats.avgLatency = modelStats.avgLatency
-      ? (modelStats.avgLatency * 0.9 + latency * 0.1)
-      : latency;
-  }
 }
 
 async function makeGroqRequest(key, model, messages, options = {}) {
@@ -152,7 +124,7 @@ async function makeGroqRequest(key, model, messages, options = {}) {
     stream = false
   } = options;
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  var resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -167,11 +139,11 @@ async function makeGroqRequest(key, model, messages, options = {}) {
     })
   });
 
-  const data = await response.json();
+  const data = await resp.json();
 
   if (data.error) {
     var error = new Error(data.error.message);
-    error.status = response.status;
+    error.status = resp.status;
     error.code = data.error.code;
     throw error;
   }
@@ -192,7 +164,7 @@ async function groqRequestWithFallback(preferredGroup, messages, options = {}) {
       continue;
     }
 
-    const startTime = Date.now();
+    var t0 = Date.now();
 
     try {
       const result = await makeGroqRequest(
@@ -206,19 +178,16 @@ async function groqRequestWithFallback(preferredGroup, messages, options = {}) {
         }
       );
 
-      updateStats(currentGroup, Date.now() - startTime, true);
       return {
         ...result,
         _meta: {
           model: config.model,
           group: currentGroup,
-          latency: Date.now() - startTime
+          latency: Date.now() - t0
         }
       };
 
     } catch (error) {
-      updateStats(currentGroup, Date.now() - startTime, false);
-
       if (error.status === 429 || error.code === 'rate_limit_exceeded') {
         const nextGroup = handleRateLimit(currentGroup);
         if (nextGroup) {
@@ -234,15 +203,14 @@ async function groqRequestWithFallback(preferredGroup, messages, options = {}) {
   throw new Error('All Groq model groups exhausted (rate limits on all models)');
 }
 
-async function deepAnalysis(symbol, marketData, systemPrompt) {
+// глубокий разбор одного тикера — кидаем в kimi, там контекст побольше
+async function deepAnalysis(ticker, mktData, customPrompt) {
+  var sysMsg = customPrompt || 'Ты крипто-аналитик. Разбирай монету подробно, смотри на все таймфреймы и объёмы. Пиши на русском, можно с форматированием.';
   const messages = [
-    {
-      role: 'system',
-      content: systemPrompt || 'Ты — профессиональный крипто-аналитик с системой самообучения. Проводи глубокий многогранный анализ. Отвечай подробно на русском языке с markdown форматированием.'
-    },
+    { role: 'system', content: sysMsg },
     {
       role: 'user',
-      content: `Проведи глубокий анализ ${symbol}.\n\nДанные рынка: ${JSON.stringify(marketData, null, 2)}`
+      content: `Разбери ${ticker} подробно.\n\nДанные рынка: ${JSON.stringify(mktData, null, 2)}`
     }
   ];
 
@@ -252,39 +220,53 @@ async function deepAnalysis(symbol, marketData, systemPrompt) {
   });
 }
 
-async function reasoningAnalysis(prompt, context = {}) {
+// reasoning — когда нужно подумать над стратегией, тут deepseek лучше справляется
+async function reasoningAnalysis(question, ctx) {
   const messages = [
     {
       role: 'system',
-      content: 'Ты — AI аналитик торговых стратегий. Используй логическое мышление для анализа стратегий и принятия решений. Показывай ход мыслей. Отвечай на русском языке.'
+      content: 'Ты аналитик торговых стратегий. Думай вслух — показывай ход рассуждений, потом делай вывод. Отвечай на русском.'
     },
     {
       role: 'user',
-      content: `${prompt}\n\nКонтекст: ${JSON.stringify(context, null, 2)}`
+      content: `${question}\n\nКонтекст: ${JSON.stringify(ctx || {}, null, 2)}`
     }
   ];
 
-  return groqRequestWithFallback('deepseek', messages, {
-    maxTokens: 4000,
-    temperature: 0.7
-  });
+  return groqRequestWithFallback('deepseek', messages, { maxTokens: 4000, temperature: 0.7 });
 }
 
-async function quickAnalysis(symbol, indicators) {
-  var messages = [
+// быстрые сигналы — qwen шустрый, ответ за секунду обычно
+async function quickAnalysis(sym, indicatorData) {
+  var msgs = [
     {
       role: 'system',
-      content: 'Ты — крипто-аналитик. Давай краткие точные сигналы на основе технических индикаторов. Формат: направление, точка входа, TP, SL, уверенность %. Отвечай на русском.'
+      content: 'Крипто-аналитик. Коротко и по делу: направление, вход, TP, SL, уверенность в процентах. Русский язык.'
     },
     {
       role: 'user',
-      content: `Проанализируй ${symbol}.\n\nИндикаторы: ${JSON.stringify(indicators)}`
+      content: `Сигнал по ${sym}.\n\nИндикаторы: ${JSON.stringify(indicatorData)}`
     }
   ];
 
-  return groqRequestWithFallback('qwen', messages, {
-    maxTokens: 2000,
-    temperature: 0.5
+  return groqRequestWithFallback('qwen', msgs, { maxTokens: 2000, temperature: 0.5 });
+}
+
+async function analyzeBacktestResults(backtestResults) {
+  const messages = [
+    {
+      role: 'system',
+      content: 'Ты эксперт по торговым стратегиям. Посмотри на результаты бэктеста и скажи что хорошо, что плохо, и что подкрутить. Структурируй ответ по разделам: общая оценка, сильные стороны, слабые стороны, что улучшить, какие параметры поменять.'
+    },
+    {
+      role: 'user',
+      content: `Вот результаты backtesting:\n\n${JSON.stringify(backtestResults, null, 2)}`
+    }
+  ];
+
+  return groqRequestWithFallback('kimi', messages, {
+    maxTokens: 4000,
+    temperature: 0.6
   });
 }
 
@@ -292,7 +274,7 @@ async function chat(message, history = []) {
   const messages = [
     {
       role: 'system',
-      content: 'Ты — AI помощник на платформе KotvukAI. Отвечай на вопросы о криптовалютах, трейдинге, техническом анализе. Будь полезным и дружелюбным. Отвечай на том языке, на котором задан вопрос.'
+      content: 'Ты AI помощник на платформе KotvukAI. Помогаешь с криптой, трейдингом, теханализом. Будь полезным, отвечай на языке вопроса.'
     },
     ...history.filter(m => m.role && m.content).slice(-10),
     { role: 'user', content: message }
@@ -304,47 +286,15 @@ async function chat(message, history = []) {
   });
 }
 
-async function analyzeBacktestResults(backtestResults) {
-  const messages = [
-    {
-      role: 'system',
-      content: `Ты — эксперт по анализу торговых стратегий. Анализируй результаты backtesting и давай рекомендации по улучшению.
-
-Формат ответа:
-## 📊 Общая оценка стратегии
-## 📈 Сильные стороны
-## ⚠️ Слабые стороны
-## 🔧 Рекомендации по улучшению
-## 🎯 Оптимизация параметров`
-    },
-    {
-      role: 'user',
-      content: `Проанализируй результаты backtesting:\n\n${JSON.stringify(backtestResults, null, 2)}`
-    }
-  ];
-
-  return groqRequestWithFallback('kimi', messages, {
-    maxTokens: 4000,
-    temperature: 0.6
-  });
-}
-
 async function selfAnalysis(pastSignals, performanceMetrics) {
-  const messages = [
+  var messages = [
     {
       role: 'system',
-      content: `Ты — AI торговый бот с возможностью самоанализа. Анализируй свои прошлые решения и учись на ошибках.
-
-Формат ответа:
-## 🧠 Анализ паттернов ошибок
-## ✅ Успешные паттерны
-## 📉 Паттерны убыточных сделок
-## 🎯 Корректировки для будущих сигналов
-## 📊 Обновлённые веса индикаторов`
+      content: 'Ты торговый бот который умеет анализировать свои ошибки. Посмотри на историю сигналов, найди паттерны — где ошибался, где угадывал. Дай конкретные советы что поменять в следующих сигналах. Раздели ответ на: паттерны ошибок, успешные паттерны, убыточные паттерны, что исправить, веса индикаторов.'
     },
     {
       role: 'user',
-      content: `Проведи самоанализ на основе истории:\n\nСигналы: ${JSON.stringify(pastSignals.slice(-20), null, 2)}\n\nМетрики: ${JSON.stringify(performanceMetrics)}`
+      content: `Самоанализ по истории:\n\nСигналы: ${JSON.stringify(pastSignals.slice(-20), null, 2)}\n\nМетрики: ${JSON.stringify(performanceMetrics)}`
     }
   ];
 
@@ -356,13 +306,14 @@ async function selfAnalysis(pastSignals, performanceMetrics) {
 
 const GROQ_MODEL = MODEL_GROUPS.qwen.model;
 
+function getGroqKey() {
+  var cfg = getConfigForGroup('qwen') || getNextConfig();
+  return cfg.key;
+}
+
 function getGroqConfig() {
   const config = getConfigForGroup('qwen') || getNextConfig();
   return { key: config.key, model: config.model };
-}
-
-function getGroqKey() {
-  return getGroqConfig().key;
 }
 
 async function groqRequest(fn) {
@@ -374,43 +325,20 @@ function fallbackToNextModel() {
   handleRateLimit('qwen');
 }
 
-function getStats() {
-  return {
-    ...stats,
-    keyCounts: {
-      kimi: MODEL_GROUPS.kimi.keys.length,
-      deepseek: MODEL_GROUPS.deepseek.keys.length,
-      qwen: MODEL_GROUPS.qwen.keys.length
-    },
-    totalKeys: Object.values(MODEL_GROUPS).reduce((sum, g) => sum + g.keys.length, 0)
-  };
-}
-
-function resetStats() {
-  stats.totalRequests = 0;
-  stats.rateLimitsHit = 0;
-  stats.fallbacks = 0;
-  for (const key of Object.keys(stats.byModel)) {
-    stats.byModel[key] = { requests: 0, errors: 0, avgLatency: 0 };
-  }
-}
-
 module.exports = {
-  MODEL_GROUPS,
-  GROQ_MODEL,
-  getConfigForGroup,
-  getNextConfig,
   groqRequestWithFallback,
   deepAnalysis,
-  reasoningAnalysis,
+  MODEL_GROUPS,
   quickAnalysis,
-  chat,
-  analyzeBacktestResults,
-  selfAnalysis,
   getGroqConfig,
+  chat,
+  reasoningAnalysis,
+  GROQ_MODEL,
+  analyzeBacktestResults,
   getGroqKey,
+  selfAnalysis,
+  getConfigForGroup,
   groqRequest,
+  getNextConfig,
   fallbackToNextModel,
-  getStats,
-  resetStats
 };
