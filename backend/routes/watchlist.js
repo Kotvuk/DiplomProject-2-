@@ -2,19 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
-router.get('/', async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const watchlist = await db.getMany(
-      'SELECT * FROM watchlist WHERE (user_id = $1 OR user_id IS NULL) ORDER BY added_at DESC',
-      [userId]
-    );
-    res.json(watchlist);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
 router.post('/', async (req, res) => {
   try {
     const { pair } = req.body;
@@ -37,9 +24,32 @@ router.post('/', async (req, res) => {
     );
 
     res.json({ id: result.rows[0].id });
-  } catch (e) {
-    res.status(400).json({ error: e.message });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('server error');
   }
+});
+
+router.get('/', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const watchlist = await db.getMany(
+      'SELECT * FROM watchlist WHERE (user_id = $1 OR user_id IS NULL) ORDER BY added_at DESC',
+      [userId]
+    );
+    res.json(watchlist);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/pair/:pair', async (req, res) => {
+  const userId = req.user?.id;
+  await db.query(
+    'DELETE FROM watchlist WHERE pair = $1 AND (user_id = $2 OR user_id IS NULL)',
+    [req.params.pair, userId]
+  );
+  res.json({ ok: true });
 });
 
 router.delete('/:id', async (req, res) => {
@@ -53,15 +63,6 @@ router.delete('/:id', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-});
-
-router.delete('/pair/:pair', async (req, res) => {
-  const userId = req.user?.id;
-  await db.query(
-    'DELETE FROM watchlist WHERE pair = $1 AND (user_id = $2 OR user_id IS NULL)',
-    [req.params.pair, userId]
-  );
-  res.json({ ok: true });
 });
 
 module.exports = router;

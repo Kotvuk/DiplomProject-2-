@@ -2,29 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
-router.get('/', async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    const { status } = req.query;
-
-    let query, params;
-
-    if (status) {
-      query = `SELECT * FROM trades WHERE status = $1 AND (user_id = $2 OR user_id IS NULL) ORDER BY opened_at DESC`;
-      params = [status, userId];
-    } else {
-      query = `SELECT * FROM trades WHERE (user_id = $1 OR user_id IS NULL) ORDER BY opened_at DESC`;
-      params = [userId];
-    }
-
-    const trades = await db.getMany(query, params);
-    res.json(trades);
-
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
 router.post('/', async (req, res) => {
   try {
     const { pair, direction, quantity, entry_price, tp, sl, entry_amount } = req.body;
@@ -48,6 +25,52 @@ router.post('/', async (req, res) => {
     );
 
     res.json({ id: result.rows[0].id });
+
+  } catch (err) {
+    return res.json({ ok: false, msg: err.message });
+  }
+});
+
+router.get('/', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { status } = req.query;
+
+    let query, params;
+
+    if (status) {
+      query = `SELECT * FROM trades WHERE status = $1 AND (user_id = $2 OR user_id IS NULL) ORDER BY opened_at DESC`;
+      params = [status, userId];
+    } else {
+      query = `SELECT * FROM trades WHERE (user_id = $1 OR user_id IS NULL) ORDER BY opened_at DESC`;
+      params = [userId];
+    }
+
+    const trades = await db.getMany(query, params);
+    res.json(trades);
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/stats', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    const closed = await db.getMany(
+      `SELECT * FROM trades WHERE status = 'closed' AND (user_id = $1 OR user_id IS NULL)`,
+      [userId]
+    );
+
+    var totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
+    const wins = closed.filter(t => (t.pnl || 0) > 0).length;
+    const winRate = closed.length > 0 ? (wins / closed.length * 100) : 0;
+    const avgPnl = closed.length > 0 ? totalPnl / closed.length : 0;
+    const best = closed.length > 0 ? Math.max(...closed.map(t => t.pnl || 0)) : 0;
+    const worst = closed.length > 0 ? Math.min(...closed.map(t => t.pnl || 0)) : 0;
+
+    res.json({ totalPnl, winRate, avgPnl, best, worst, total: closed.length });
 
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -89,29 +112,6 @@ router.post('/:id/close', async (req, res) => {
     );
 
     res.json({ id: trade.id, pnl, close_price: closePrice });
-
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-router.get('/stats', async (req, res) => {
-  try {
-    const userId = req.user?.id;
-
-    const closed = await db.getMany(
-      `SELECT * FROM trades WHERE status = 'closed' AND (user_id = $1 OR user_id IS NULL)`,
-      [userId]
-    );
-
-    var totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
-    const wins = closed.filter(t => (t.pnl || 0) > 0).length;
-    const winRate = closed.length > 0 ? (wins / closed.length * 100) : 0;
-    const avgPnl = closed.length > 0 ? totalPnl / closed.length : 0;
-    const best = closed.length > 0 ? Math.max(...closed.map(t => t.pnl || 0)) : 0;
-    const worst = closed.length > 0 ? Math.min(...closed.map(t => t.pnl || 0)) : 0;
-
-    res.json({ totalPnl, winRate, avgPnl, best, worst, total: closed.length });
 
   } catch (e) {
     res.status(500).json({ error: e.message });

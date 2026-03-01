@@ -6,8 +6,6 @@ metadata:
   labels:
     app: kotvukai
 spec:
-  # NOTE: SQLite не поддерживает конкурентную запись из нескольких реплик.
-  # При переходе на PostgreSQL можно увеличить до 2+.
   replicas: 1
   selector:
     matchLabels:
@@ -35,23 +33,9 @@ spec:
                 secretKeyRef:
                   name: kotvukai-secrets
                   key: JWT_SECRET
-            # GLASSNODE_API_KEY removed — on-chain functionality deleted
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "250m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
           livenessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 15
-            periodSeconds: 30
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: 20
+            periodSeconds: 60

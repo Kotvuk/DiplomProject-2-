@@ -2,46 +2,6 @@ const express = require('express');
 var router = express.Router();
 const sentiment = require('../services/sentiment');
 
-router.get('/market/:symbol?', async (req, res) => {
-  try {
-    const symbol = req.params.symbol || 'BTC';
-
-    const result = await sentiment.getMarketSentiment(symbol.toUpperCase());
-    res.json(result);
-
-  } catch (e) {
-    console.error('Market sentiment error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-router.get('/news', async (req, res) => {
-  try {
-    const { symbols } = req.query;
-    const symbolList = symbols ? symbols.split(',') : ['BTC', 'ETH', 'crypto'];
-
-    const result = await sentiment.getNewsSentiment(symbolList);
-    res.json(result);
-
-  } catch (e) {
-    console.error('News sentiment error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-router.get('/social/:symbol?', async (req, res) => {
-  try {
-    const symbol = req.params.symbol || 'BTC';
-
-    const result = await sentiment.getSocialSentiment(symbol.toUpperCase());
-    res.json(result);
-
-  } catch (e) {
-    console.error('Social sentiment error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 router.get('/fear-greed', async (req, res) => {
   try {
     const { days = 7 } = req.query;
@@ -69,35 +29,24 @@ router.get('/fear-greed', async (req, res) => {
       res.status(502).json({ error: 'Failed to fetch Fear & Greed data' });
     }
 
-  } catch (e) {
-    console.error('Fear & Greed error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    console.error('Fear & Greed error:', err);
+    res.status(500).send('server error');
   }
 });
 
-function analyzeFearGreedTrend(data) {
-  if (!data || data.length < 2) return 'stable';
+router.get('/market/:symbol?', async (req, res) => {
+  try {
+    const symbol = req.params.symbol || 'BTC';
 
-  const recent = parseInt(data[0].value);
-  const previous = parseInt(data[data.length - 1].value);
-  const change = recent - previous;
+    const result = await sentiment.getMarketSentiment(symbol.toUpperCase());
+    res.json(result);
 
-  let direction;
-  if (change > 10) direction = 'increasing_greed';
-  else if (change < -10) direction = 'increasing_fear';
-  else direction = 'stable';
-
-  const avg = data.reduce((s, d) => s + parseInt(d.value), 0) / data.length;
-
-  return {
-    direction,
-    change: change,
-    average: Math.round(avg),
-    volatility: Math.round(Math.sqrt(
-      data.reduce((s, d) => s + Math.pow(parseInt(d.value) - avg, 2), 0) / data.length
-    ))
-  };
-}
+  } catch (e) {
+    console.error('Market sentiment error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 router.post('/analyze', async (req, res) => {
   try {
@@ -110,8 +59,35 @@ router.post('/analyze', async (req, res) => {
     const result = sentiment.analyzeTextSentiment(text);
     res.json(result);
 
+  } catch (error) {
+    console.error('Text analysis error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/news', async (req, res) => {
+  try {
+    const { symbols } = req.query;
+    const symbolList = symbols ? symbols.split(',') : ['BTC', 'ETH', 'crypto'];
+
+    const result = await sentiment.getNewsSentiment(symbolList);
+    res.json(result);
+
   } catch (e) {
-    console.error('Text analysis error:', e);
+    console.error('News sentiment error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/social/:symbol?', async (req, res) => {
+  try {
+    const symbol = req.params.symbol || 'BTC';
+
+    const result = await sentiment.getSocialSentiment(symbol.toUpperCase());
+    res.json(result);
+
+  } catch (e) {
+    console.error('Social sentiment error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -208,5 +184,29 @@ router.get('/signals/:symbol?', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+function analyzeFearGreedTrend(data) {
+  if (!data || data.length < 2) return 'stable';
+
+  const recent = parseInt(data[0].value);
+  const previous = parseInt(data[data.length - 1].value);
+  const change = recent - previous;
+
+  let direction;
+  if (change > 10) direction = 'increasing_greed';
+  else if (change < -10) direction = 'increasing_fear';
+  else direction = 'stable';
+
+  const avg = data.reduce((s, d) => s + parseInt(d.value), 0) / data.length;
+
+  return {
+    direction,
+    change: change,
+    average: Math.round(avg),
+    volatility: Math.round(Math.sqrt(
+      data.reduce((s, d) => s + Math.pow(parseInt(d.value) - avg, 2), 0) / data.length
+    ))
+  };
+}
 
 module.exports = router;

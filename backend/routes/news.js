@@ -4,14 +4,6 @@ const { checkAiLimit } = require('../middleware/rateLimit');
 
 const { groqRequest } = require('../utils/groqKeys');
 
-router.get('/', async (req, res) => {
-  try {
-    const r = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
-    const data = await r.json();
-    res.json(data.Data || []);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 router.post('/summary', async (req, res) => {
   if (!checkAiLimit(req, res)) return;
   try {
@@ -35,6 +27,16 @@ router.post('/summary', async (req, res) => {
       return d;
     });
     res.json({ summary: data?.choices?.[0]?.message?.content || 'Error' });
+  } catch (err) {
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
+router.get('/', async (req, res) => {
+  try {
+    const r = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
+    const data = await r.json();
+    res.json(data.Data || []);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
