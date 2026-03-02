@@ -69,7 +69,6 @@ app.get('*', (req, res) => {
 });
 
 async function initializeServices() {
-  console.log('Initializing services...');
 
   try {
     const telegram = require('./services/telegram');

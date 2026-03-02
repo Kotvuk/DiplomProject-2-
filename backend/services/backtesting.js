@@ -79,15 +79,12 @@ function calculateIndicators(klines, params = {}) {
   };
 }
 
-// EMA серия — берём из indicators.js, убираем начальные null
-// (в backtesting не нужна null-подложка, только значения)
 function calculateEMA(data, period) {
   const series = calcEMASeries(data, period);
   return series.filter(v => v !== null);
 }
 
-// RSI серия — тоже через indicators.js
-// добавляем один null впереди для совместимости со стратегиями (offset-логика)
+// null впереди для offset-совместимости со стратегиями
 function calculateRSI(closes, period = 14) {
   const series = calcRSISeries(closes, period);
   return [null, ...series];
@@ -210,36 +207,30 @@ function clusterLevels(levels, totalBars) {
     .slice(0, 10);
 }
 
-// --- хелпер для RSI: проверяем выход из зоны ---
 function checkRsiZoneExit(prev, curr, threshold, direction) {
   if (direction === 'oversold') return prev < threshold && curr >= threshold;
   return prev > threshold && curr <= threshold;
 }
 
-// процентный стоп: цена * (1 ± pct/100)
 function pctStop(price, pctValue, side) {
   return side === 'below' ? price * (1 - pctValue / 100) : price * (1 + pctValue / 100);
 }
 
-// уверенность RSI-сигнала по глубине захода в зону
 function rsiConfidence(rsiVal, direction) {
   if (direction === 'buy') return rsiVal < 25 ? 85 : rsiVal < 35 ? 70 : 55;
   return rsiVal > 75 ? 85 : rsiVal > 65 ? 70 : 55;
 }
 
-// --- хелпер для S/R: близость к уровню ---
 function isNearLevel(price, levelPrice, tolerancePct) {
   return Math.abs(price - levelPrice) / levelPrice < tolerancePct;
 }
 
-// MACD: оценка силы пересечения (чем дальше от нуля — тем надёжнее)
 function macdCrossStrength(macdVal, histVal) {
   const absHist = Math.abs(histVal);
   if (absHist > 0.001 && Math.abs(macdVal) > 0.0005) return 80;
   return 65;
 }
 
-// для Bollinger: расстояние от цены до полосы в % от ширины канала
 function bbPosition(price, upper, lower) {
   const width = upper - lower;
   if (width === 0) return 0.5;
@@ -313,7 +304,6 @@ const STRATEGIES = {
         const rsiNow = rsiArr[i];
         const rsiPrev = rsiArr[i - 1];
 
-        // вышли из перепроданности — покупаем
         if (checkRsiZoneExit(rsiPrev, rsiNow, oversoldLine, 'oversold')) {
           const klineIdx = i + 15;
           const entry = klines[klineIdx]?.close;
@@ -329,7 +319,6 @@ const STRATEGIES = {
           });
         }
 
-        // вышли из перекупленности — продаём
         if (checkRsiZoneExit(rsiPrev, rsiNow, overboughtLine, 'overbought')) {
           const klineIdx = i + 15;
           const entry = klines[klineIdx]?.close;
@@ -415,7 +404,6 @@ const STRATEGIES = {
         const bandWidth = band.upper[i] - band.lower[i];
         const pos = bbPosition(curClose, band.upper[i], band.lower[i]);
 
-        // пробой вверх — SL на middle, TP на расстоянии ширины канала от верхней полосы
         if (curClose > band.upper[i] && prevClose <= band.upper[i - 1]) {
           signals.push({
             index: kIdx,
@@ -428,7 +416,6 @@ const STRATEGIES = {
           });
         }
 
-        // пробой вниз — SL на middle, TP на расстоянии ширины канала от нижней полосы
         if (curClose < band.lower[i] && prevClose >= band.lower[i - 1]) {
           signals.push({
             index: kIdx,
@@ -457,15 +444,13 @@ const STRATEGIES = {
       const atrArr = indicators.atr14;
       const proximity = params.tolerance || 0.02;
 
-      // начинаем с 50-й свечи — раньше нет смысла, уровни ещё не сформировались
-      for (let i = 50; i < klines.length; i++) {
+      for (let i = 50; i < klines.length; i++) { // S/R уровни ещё не готовы до 50-й
         const bar = klines[i];
         const localAtr = atrArr[i - 14] || 0;
 
         for (const level of srLevels) {
           if (!isNearLevel(bar.close, level.price, proximity)) continue;
 
-          // SL за уровень + 2% буфер, TP через 2.5 ATR
           if (level.type === 'support' && bar.low <= level.price * 1.01) {
             collected.push({
               index: i,
@@ -617,7 +602,6 @@ function simulateTrades(klines, signals, options) {
     const entryFee = positionValue * (feePercent / 100);
     balance -= positionValue + entryFee;
 
-    // тут формируем объект позиции
     const pos = {
       id: tradeId++,
       direction,
@@ -634,7 +618,6 @@ function simulateTrades(klines, signals, options) {
 
     positions.push(pos);
 
-    // проходим по свечам после входа, ищем выход по SL/TP
     for (let i = signal.index; i < klines.length; i++) {
       const candle = klines[i];
       let closed = false;
@@ -695,7 +678,6 @@ function simulateTrades(klines, signals, options) {
     }
   }
 
-  // закрываем оставшиеся позиции по последней свече
   for (const openPos of positions) {
     const lastCandle = klines[klines.length - 1];
     const exitPrice = lastCandle.close;
@@ -741,7 +723,6 @@ function calculateMetrics(trades, initialCapital) {
   const totalWins = wins.reduce((sum, t) => sum + t.netPnl, 0);
   const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.netPnl, 0));
 
-  // profitFactor — разбиваем на if/else чтобы было понятнее
   let profitFactor;
   if (totalLosses > 0) {
     profitFactor = totalWins / totalLosses;
@@ -764,7 +745,6 @@ function calculateMetrics(trades, initialCapital) {
     }
   }
 
-  // sharpe ratio
   const returns = trades.map(t => t.returnPct);
   const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
   const stdReturn = Math.sqrt(
@@ -772,7 +752,6 @@ function calculateMetrics(trades, initialCapital) {
   );
   const sharpeRatio = stdReturn > 0 ? (avgReturn / stdReturn) * Math.sqrt(252) : 0;
 
-  // среднее время удержания позиции (в часах)
   const holdingTimes = trades.map(t => {
     const entry = new Date(t.entryTime).getTime();
     const exit = new Date(t.exitTime).getTime();

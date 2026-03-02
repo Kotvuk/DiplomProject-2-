@@ -37,7 +37,6 @@ router.post('/analyze', async (req, res) => {
       return res.status(400).json({ error: 'Invalid symbol. Use one of the supported pairs.' });
     }
 
-    // собираем индикаторы по всем таймфреймам
     const timeframes = ['5m', '15m', '1h', '4h', '1d', '1w'];
     const indicators = {};
 
@@ -53,7 +52,6 @@ router.post('/analyze', async (req, res) => {
       }
     }
 
-    // корреляция с BTC если анализируем альт
     let btcContext = '';
     if (symbol && symbol !== 'BTCUSDT') {
       try {
@@ -65,7 +63,6 @@ router.post('/analyze', async (req, res) => {
       } catch (e) { /* не страшно */ }
     }
 
-    // подтягиваем историю сигналов для самообучения
     const pastSignals = await db.getMany('SELECT * FROM signal_results ORDER BY created_at DESC LIMIT 10');
     let learningContext = '';
     if (pastSignals.length > 0) {
@@ -77,7 +74,6 @@ router.post('/analyze', async (req, res) => {
       }
     }
 
-    // формируем текст индикаторов
     let indicatorText = '';
     for (const tf of timeframes) {
       if (indicators[tf]) {
@@ -86,7 +82,6 @@ router.post('/analyze', async (req, res) => {
       }
     }
 
-    // проверяем согласованность таймфреймов
     const tfSignals = {};
     for (const tf of timeframes) {
       if (indicators[tf]) {
@@ -137,7 +132,6 @@ router.post('/analyze', async (req, res) => {
 
     const text = customData?.choices?.[0]?.message?.content || 'Ошибка получения ответа';
 
-    // парсим confidence и coin score из ответа
     let confidence = null;
     let coinScore = null;
     const confMatch = text.match(/[Уу]веренность[:\s]*(\d{1,3})\s*%/i) || text.match(/(\d{1,3})\s*%/);
@@ -158,7 +152,6 @@ router.post('/analyze', async (req, res) => {
     if (tpMatch) tpPrice = +tpMatch[1].replace(',', '');
     if (slMatch) slPrice = +slMatch[1].replace(',', '');
 
-    // сохраняем сигнал если есть направление
     if (direction && price) {
       try {
         await db.query(

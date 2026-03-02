@@ -1,6 +1,3 @@
-// Единый список торговых пар, которые поддерживает платформа.
-// Импортировать отсюда, а не дублировать в каждом роуте.
-
 const ALLOWED_SYMBOLS = [
   'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'SOLUSDT',
   'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT', 'DOTUSDT', 'MATICUSDT',
@@ -13,7 +10,6 @@ const ALLOWED_SYMBOLS = [
   'SANDUSDT', 'MANAUSDT', 'AXSUSDT', 'GALAUSDT',
 ];
 
-// Set-версия для быстрых проверок (O(1) вместо includes)
 const ALLOWED_SYMBOLS_SET = new Set(ALLOWED_SYMBOLS);
 
 module.exports = { ALLOWED_SYMBOLS, ALLOWED_SYMBOLS_SET };

@@ -584,7 +584,7 @@ async function applyOptimizations(bot, suggestions) {
 }
 
 async function initializeBotScheduler() {
-  console.log(' Initializing trading bot scheduler...');
+  console.log('Starting bot scheduler...');
 
   const runningBots = await db.getMany(
     "SELECT * FROM trading_bots WHERE status = 'running'"
@@ -615,20 +615,9 @@ async function initializeBotScheduler() {
 }
 
 module.exports = {
-
   BOT_CONFIG,
-
-  createBot,
-  getUserBots,
-  getBot,
-  startBot,
-  stopBot,
-  deleteBot,
-  updateBot,
-
-  executeBot,
-
-  performSelfAnalysis,
-
+  createBot, getUserBots, getBot,
+  startBot, stopBot, deleteBot, updateBot,
+  executeBot, performSelfAnalysis,
   initializeBotScheduler
 };

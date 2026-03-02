@@ -129,16 +129,8 @@ function verifyBackupCode(hashedCode, providedCode) {
 }
 
 module.exports = {
-
-  generateSecret,
-  generateTOTP,
-  verifyTOTP,
-
+  generateSecret, generateTOTP, verifyTOTP,
   generateOtpAuthUrl,
-
-  generateBackupCodes,
-  hashBackupCode,
-  verifyBackupCode,
-
+  generateBackupCodes, hashBackupCode, verifyBackupCode,
   TOTP_CONFIG
 };

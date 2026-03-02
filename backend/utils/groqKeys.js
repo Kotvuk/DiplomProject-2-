@@ -203,7 +203,6 @@ async function groqRequestWithFallback(preferredGroup, messages, options = {}) {
   throw new Error('All Groq model groups exhausted (rate limits on all models)');
 }
 
-// глубокий разбор одного тикера — кидаем в kimi, там контекст побольше
 async function deepAnalysis(ticker, mktData, customPrompt) {
   const sysMsg = customPrompt || 'Ты разбираешься в крипте лучше большинства. Разбирай монету по полной — таймфреймы, объёмы, всё что видишь. Язык — русский, markdown приветствуется.';
   const messages = [
@@ -220,7 +219,6 @@ async function deepAnalysis(ticker, mktData, customPrompt) {
   });
 }
 
-// reasoning — когда нужно подумать над стратегией, тут deepseek лучше справляется
 async function reasoningAnalysis(question, ctx) {
   const messages = [
     {
@@ -236,7 +234,6 @@ async function reasoningAnalysis(question, ctx) {
   return groqRequestWithFallback('deepseek', messages, { maxTokens: 4000, temperature: 0.7 });
 }
 
-// быстрые сигналы — qwen шустрый, ответ за секунду обычно
 async function quickAnalysis(sym, indicatorData) {
   const msgs = [
     {
