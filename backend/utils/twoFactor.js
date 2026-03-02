@@ -85,7 +85,7 @@ function verifyTOTP(secret, code, window = TOTP_CONFIG.window) {
   const counter = Math.floor(time / 1000 / TOTP_CONFIG.period);
 
   for (let i = -window; i <= window; i++) {
-    var expectedCode = generateHOTP(secret, counter + i);
+    const expectedCode = generateHOTP(secret, counter + i);
     if (expectedCode === code) {
       return true;
     }
@@ -98,7 +98,7 @@ function generateOtpAuthUrl(email, secret) {
   const issuer = encodeURIComponent(TOTP_CONFIG.issuer);
   const accountName = encodeURIComponent(email);
 
-  var params = new URLSearchParams({
+  const params = new URLSearchParams({
     secret,
     issuer: TOTP_CONFIG.issuer,
     algorithm: TOTP_CONFIG.algorithm.toUpperCase(),

@@ -1,5 +1,5 @@
 const express = require('express');
-var router = express.Router();
+const router = express.Router();
 const sentiment = require('../services/sentiment');
 
 router.get('/fear-greed', async (req, res) => {
@@ -42,9 +42,9 @@ router.get('/market/:symbol?', async (req, res) => {
     const result = await sentiment.getMarketSentiment(symbol.toUpperCase());
     res.json(result);
 
-  } catch (e) {
+  } catch (err) {
     console.error('Market sentiment error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -59,9 +59,9 @@ router.post('/analyze', async (req, res) => {
     const result = sentiment.analyzeTextSentiment(text);
     res.json(result);
 
-  } catch (error) {
+  } catch (err) {
     console.error('Text analysis error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -73,9 +73,9 @@ router.get('/news', async (req, res) => {
     const result = await sentiment.getNewsSentiment(symbolList);
     res.json(result);
 
-  } catch (e) {
+  } catch (err) {
     console.error('News sentiment error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -86,23 +86,23 @@ router.get('/social/:symbol?', async (req, res) => {
     const result = await sentiment.getSocialSentiment(symbol.toUpperCase());
     res.json(result);
 
-  } catch (e) {
+  } catch (err) {
     console.error('Social sentiment error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
 router.get('/history/:symbol?', async (req, res) => {
   try {
-    var symbol = req.params.symbol || 'BTC';
+    const symbol = req.params.symbol || 'BTC';
     const { days = 7 } = req.query;
 
     const result = await sentiment.getHistoricalSentiment(symbol.toUpperCase(), parseInt(days));
     res.json(result);
 
-  } catch (e) {
+  } catch (err) {
     console.error('Historical sentiment error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -179,9 +179,9 @@ router.get('/signals/:symbol?', async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-  } catch (e) {
+  } catch (err) {
     console.error('Sentiment signals error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: err.message });
   }
 });
 

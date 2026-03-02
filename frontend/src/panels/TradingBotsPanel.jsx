@@ -14,7 +14,7 @@ const icons = {
   chart: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>,
 };
 
-var STRATEGIES = [
+const STRATEGIES = [
   { id: 'ema_cross', name: 'EMA Crossover' },
   { id: 'rsi_reversal', name: 'RSI Reversal' },
   { id: 'macd_signal', name: 'MACD Signal' },
@@ -31,7 +31,7 @@ export default function TradingBotsPanel() {
 
   const [bots, setBots] = useState([]);
   const [loading, setLoading] = useState(true);
-  var [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [selectedBot, setSelectedBot] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
 
@@ -49,7 +49,7 @@ export default function TradingBotsPanel() {
     loadBots();
   }, []);
 
-  var loadBots = async () => {
+  const loadBots = async () => {
     setLoading(true);
     try {
       const res = await authFetch('/api/bots');
@@ -114,7 +114,7 @@ export default function TradingBotsPanel() {
 
   const stopBot = async (botId) => {
     try {
-      var res = await authFetch(`/api/bots/${botId}/stop`, { method: 'POST' });
+      const res = await authFetch(`/api/bots/${botId}/stop`, { method: 'POST' });
       if (res.ok) {
         loadBots();
       }
@@ -142,7 +142,7 @@ export default function TradingBotsPanel() {
   const runAnalysis = async (botId) => {
     setAnalysisResult({ loading: true });
     try {
-      var res = await authFetch(`/api/bots/${botId}/analyze`, { method: 'POST' });
+      const res = await authFetch(`/api/bots/${botId}/analyze`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         setAnalysisResult(data);

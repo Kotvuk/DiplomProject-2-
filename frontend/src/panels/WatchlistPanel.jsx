@@ -40,7 +40,7 @@ export default function WatchlistPanel() {
 
   useEffect(() => { fetchTickers(); const iv = setInterval(fetchTickers, 10000); return () => clearInterval(iv); }, [fetchTickers]);
 
-  var handleAdd = async (pair) => {
+  const handleAdd = async (pair) => {
     await fetch('/api/watchlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pair }) });
     setSearch(''); fetchWatchlist();
   };
@@ -49,12 +49,12 @@ export default function WatchlistPanel() {
     await fetch(`/api/watchlist/${id}`, { method: 'DELETE' }); fetchWatchlist();
   };
 
-  var filtered = search.length >= 2
+  const filtered = search.length >= 2
     ? allPairs.filter(p => p.toLowerCase().includes(search.toLowerCase()) && !watchlist.some(w => w.pair === p)).slice(0, 10)
     : [];
 
   const trendIndicator = (pct) => {
-    var n = +pct;
+    const n = +pct;
     if (n > 5) return '🟢🟢🟢'; if (n > 2) return '🟢🟢'; if (n > 0) return '🟢';
     if (n > -2) return '🔴'; if (n > -5) return '🔴🔴'; return '🔴🔴🔴';
   };

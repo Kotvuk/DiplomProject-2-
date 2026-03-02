@@ -98,8 +98,8 @@ router.get('/trades/pdf', async (req, res) => {
     });
 
     doc.end();
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -115,8 +115,8 @@ router.get('/analytics/pdf', async (req, res) => {
     const best = closed.length > 0 ? Math.max(...closed.map(t => t.pnl || 0)) : 0;
     const worst = closed.length > 0 ? Math.min(...closed.map(t => t.pnl || 0)) : 0;
 
-    var tpHit = signals.filter(s => s.result === 'tp_hit').length;
-    var slHit = signals.filter(s => s.result === 'sl_hit').length;
+    const tpHit = signals.filter(s => s.result === 'tp_hit').length;
+    const slHit = signals.filter(s => s.result === 'sl_hit').length;
     const signalAcc = signals.length > 0 ? (tpHit / signals.length * 100) : 0;
 
     const doc = new PDFDocument({ margin: 50 });
@@ -165,8 +165,8 @@ router.get('/analytics/pdf', async (req, res) => {
     });
 
     doc.end();
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

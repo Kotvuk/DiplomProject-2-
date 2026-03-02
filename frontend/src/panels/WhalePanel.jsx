@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useLang } from '../LangContext';
 import { useTheme } from '../ThemeContext';
 
-var getStyles = (theme) => ({
+const getStyles = (theme) => ({
   card: { background: theme.cardBg, border: '1px solid ' + theme.border, borderRadius: 12, padding: 20, marginBottom: 16 },
   selStyle: { background: theme.inputBg, color: theme.text, border: '1px solid ' + theme.border, borderRadius: 8, padding: '8px 14px', fontSize: 14, fontFamily: "'Inter',sans-serif", outline: 'none' }
 });
@@ -22,7 +22,7 @@ export default function WhalePanel() {
   const [whaleTrades, setWhaleTrades] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  var fetchData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [obR, trR] = await Promise.all([fetch(`/api/whale/orderbook?symbol=${pair}`), fetch(`/api/whale/trades?symbol=${pair}`)]);
@@ -35,12 +35,12 @@ export default function WhalePanel() {
   useEffect(() => { fetchData(); const iv = setInterval(fetchData, 15000); return () => clearInterval(iv); }, [fetchData]);
 
   const buyTotal = orderBook?.bids?.reduce((s, b) => s + (+b[0]) * (+b[1]), 0) || 0;
-  var sellTotal = orderBook?.asks?.reduce((s, a) => s + (+a[0]) * (+a[1]), 0) || 0;
+  const sellTotal = orderBook?.asks?.reduce((s, a) => s + (+a[0]) * (+a[1]), 0) || 0;
   const totalOB = buyTotal + sellTotal || 1;
   const buyPct = (buyTotal / totalOB * 100).toFixed(1);
   const sellPct = (sellTotal / totalOB * 100).toFixed(1);
   const topBids = orderBook?.bids?.slice(0, 10).map(b => ({ price: +b[0], qty: +b[1], usd: (+b[0]) * (+b[1]) })) || [];
-  var topAsks = orderBook?.asks?.slice(0, 10).map(a => ({ price: +a[0], qty: +a[1], usd: (+a[0]) * (+a[1]) })) || [];
+  const topAsks = orderBook?.asks?.slice(0, 10).map(a => ({ price: +a[0], qty: +a[1], usd: (+a[0]) * (+a[1]) })) || [];
 
   return (
     <div>

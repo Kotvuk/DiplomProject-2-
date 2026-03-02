@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-var AuthContext = createContext();
+const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
   }
 
   async function refreshAccessToken() {
-    var refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = localStorage.getItem('refreshToken');
     if (!refreshToken) throw new Error('No refresh token');
     const res = await fetch('/api/auth/refresh', {
       method: 'POST',
@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
     let res = await makeRequest(currentToken);
     if (res.status === 401) {
       try {
-        var newToken = await refreshAccessToken();
+        const newToken = await refreshAccessToken();
         res = await makeRequest(newToken);
       } catch {
         logout();

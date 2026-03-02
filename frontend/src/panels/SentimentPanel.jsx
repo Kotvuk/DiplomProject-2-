@@ -4,7 +4,7 @@ import { useTheme } from '../ThemeContext';
 export default function SentimentPanel() {
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
-  var [symbol, setSymbol] = useState('BTC');
+  const [symbol, setSymbol] = useState('BTC');
   const [marketSentiment, setMarketSentiment] = useState(null);
   const [fearGreed, setFearGreed] = useState(null);
   const [newsSentiment, setNewsSentiment] = useState(null);
@@ -17,7 +17,7 @@ export default function SentimentPanel() {
   const loadSentimentData = async () => {
     setLoading(true);
     try {
-      var [marketRes, fgRes, signalsRes] = await Promise.all([
+      const [marketRes, fgRes, signalsRes] = await Promise.all([
         fetch(`/api/sentiment/market/${symbol}`).catch(() => null),
         fetch('/api/sentiment/fear-greed?days=7').catch(() => null),
         fetch(`/api/sentiment/signals/${symbol}`).catch(() => null)
@@ -29,7 +29,7 @@ export default function SentimentPanel() {
         setNewsSentiment(data.news_sentiment);
       }
       if (fgRes) {
-        var data = await fgRes.json();
+        const data = await fgRes.json();
         setFearGreed(data);
       }
       if (signalsRes) {
@@ -50,7 +50,7 @@ export default function SentimentPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
       });
-      var data = await res.json();
+      const data = await res.json();
       return data;
     } catch (e) {
       return null;

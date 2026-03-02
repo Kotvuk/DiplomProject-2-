@@ -7,15 +7,15 @@ import { useTheme } from '../ThemeContext';
 const PAIRS = ['BTCUSDT','ETHUSDT','BNBUSDT','XRPUSDT','ADAUSDT','SOLUSDT','DOGEUSDT','DOTUSDT','MATICUSDT','AVAXUSDT'];
 const TIMEFRAMES = ['1m','5m','15m','1h','4h','1d','1w'];
 const CHART_TYPE_IDS = ['Candlestick', 'Line', 'Bars'];
-var CHART_TYPE_KEYS = { Candlestick: 'candles', Line: 'line', Bars: 'bars' };
+const CHART_TYPE_KEYS = { Candlestick: 'candles', Line: 'line', Bars: 'bars' };
 
-var DRAWING_TOOLS = [
+const DRAWING_TOOLS = [
   { id: 'hline', icon: '━', label: 'horizontalLine' },
   { id: 'trendline', icon: '╱', label: 'trendLine' },
   { id: 'fib', icon: '🔢', label: 'fibonacci' },
 ];
 
-var INDICATORS = [
+const INDICATORS = [
   { id: 'rsi', label: 'RSI' },
   { id: 'macd', label: 'MACD' },
   { id: 'bb', label: 'bollingerBands' },
@@ -95,7 +95,7 @@ function computeRSI(data, period = 14) {
     } else {
       gains = (gains * (period - 1) + (diff > 0 ? diff : 0)) / period;
       losses = (losses * (period - 1) + (diff < 0 ? -diff : 0)) / period;
-      var rs = losses === 0 ? 100 : gains / losses;
+      const rs = losses === 0 ? 100 : gains / losses;
       rsi.push({ time: data[i].time, value: 100 - 100 / (1 + rs) });
     }
   }
@@ -107,7 +107,7 @@ function computeBB(data, period = 20, mult = 2) {
   for (let i = period - 1; i < data.length; i++) {
     const slice = data.slice(i - period + 1, i + 1);
     const avg = slice.reduce((s, d) => s + d.close, 0) / period;
-    var std = Math.sqrt(slice.reduce((s, d) => s + (d.close - avg) ** 2, 0) / period);
+    const std = Math.sqrt(slice.reduce((s, d) => s + (d.close - avg) ** 2, 0) / period);
     mid.push({ time: data[i].time, value: avg });
     upper.push({ time: data[i].time, value: avg + mult * std });
     lower.push({ time: data[i].time, value: avg - mult * std });

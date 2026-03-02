@@ -60,7 +60,7 @@ app.use('/api/push', require('./routes/push'));
 const distPath = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(distPath));
 app.get('*', (req, res) => {
-  var indexPath = path.join(distPath, 'index.html');
+  const indexPath = path.join(distPath, 'index.html');
   if (require('fs').existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {

@@ -107,7 +107,7 @@ export default function AuthPage({ initialTab = 'login', onBack }) {
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass] = useState('');
-  var [regPass2, setRegPass2] = useState('');
+  const [regPass2, setRegPass2] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();

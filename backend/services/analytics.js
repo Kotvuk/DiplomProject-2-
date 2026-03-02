@@ -8,7 +8,7 @@ async function getPnLHistory(userId, period = 'month', limit = 12) {
     year: "DATE_TRUNC('year', closed_at)"
   };
 
-  var dateFormat = periodFormats[period] || periodFormats.month;
+  const dateFormat = periodFormats[period] || periodFormats.month;
 
   const query = `
     SELECT
@@ -132,7 +132,7 @@ async function calculateVaR(userId, confidence = 0.95) {
 }
 
 async function calculateSharpeRatio(userId, riskFreeRate = 0.04) {
-  var query = `
+  const query = `
     SELECT
       DATE(closed_at) as date,
       SUM(pnl) as daily_pnl
@@ -166,7 +166,7 @@ async function calculateSharpeRatio(userId, riskFreeRate = 0.04) {
     negativeReturns.reduce((a, b) => a + Math.pow(b, 2), 0) / negativeReturns.length
   ) * Math.sqrt(252);
 
-  var sortino = downsideDev > 0
+  let sortino = downsideDev > 0
     ? (annualReturn - riskFreeRate) / downsideDev
     : 0;
 
@@ -212,7 +212,7 @@ async function calculateMaxDrawdown(userId) {
     ORDER BY closed_at ASC
   `;
 
-  var result = await db.getMany(query, [userId]);
+  const result = await db.getMany(query, [userId]);
 
   if (result.length === 0) {
     return { max_drawdown: 0, max_drawdown_pct: 0 };
@@ -228,7 +228,7 @@ async function calculateMaxDrawdown(userId) {
   const drawdowns = [];
 
   for (const row of result) {
-    var cumPnl = parseFloat(row.cumulative_pnl);
+    const cumPnl = parseFloat(row.cumulative_pnl);
 
     if (cumPnl > peak) {
       peak = cumPnl;

@@ -22,7 +22,7 @@ const AdminPanel = () => {
   const { t } = useLang();
   const { theme } = useTheme();
   const styles = getStyles(theme);
-  var [activeTab, setActiveTab] = useState('stats');
+  const [activeTab, setActiveTab] = useState('stats');
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [signals, setSignals] = useState([]);
@@ -108,7 +108,7 @@ const AdminPanel = () => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     const token = localStorage.getItem('token');
     try {
-      var res = await fetch(`/api/admin/users/${userId}`, {
+      const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -121,7 +121,7 @@ const AdminPanel = () => {
     } catch (error) { console.error('Error deleting user:', error); }
   };
 
-  var updatePlanSettings = async (planName, settings) => {
+  const updatePlanSettings = async (planName, settings) => {
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(`/api/admin/plans/${planName}`, {

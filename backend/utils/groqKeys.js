@@ -1,4 +1,4 @@
-var MODEL_GROUPS = {
+const MODEL_GROUPS = {
   kimi: {
     model: 'moonshotai/kimi-k2-instruct-0905',
     name: 'Kimi K2',
@@ -58,7 +58,7 @@ const keyIndexes = {
   qwen: 0
 };
 
-var FALLBACK_ORDER = ['kimi', 'deepseek', 'qwen'];
+const FALLBACK_ORDER = ['kimi', 'deepseek', 'qwen'];
 let currentFallbackIndex = 0;
 
 function getConfigForGroup(groupName) {
@@ -67,7 +67,7 @@ function getConfigForGroup(groupName) {
     return null;
   }
 
-  var idx = keyIndexes[groupName];
+  const idx = keyIndexes[groupName];
   const key = group.keys[idx];
 
   keyIndexes[groupName] = (idx + 1) % group.keys.length;
@@ -88,7 +88,7 @@ function getNextConfig() {
   }
 
   for (const name of Object.keys(MODEL_GROUPS)) {
-    var g = MODEL_GROUPS[name];
+    const g = MODEL_GROUPS[name];
     if (g.keys.length > 0) {
       return getConfigForGroup(name);
     }
@@ -105,7 +105,7 @@ function getNextConfig() {
 function handleRateLimit(currentGroup) {
   const currentIndex = FALLBACK_ORDER.indexOf(currentGroup);
   for (let i = 1; i < FALLBACK_ORDER.length; i++) {
-    var nextIndex = (currentIndex + i) % FALLBACK_ORDER.length;
+    const nextIndex = (currentIndex + i) % FALLBACK_ORDER.length;
     const nextGroup = FALLBACK_ORDER[nextIndex];
     if (MODEL_GROUPS[nextGroup].keys.length > 0) {
       currentFallbackIndex = nextIndex;
@@ -124,7 +124,7 @@ async function makeGroqRequest(key, model, messages, options = {}) {
     stream = false
   } = options;
 
-  var resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ async function makeGroqRequest(key, model, messages, options = {}) {
   const data = await resp.json();
 
   if (data.error) {
-    var error = new Error(data.error.message);
+    const error = new Error(data.error.message);
     error.status = resp.status;
     error.code = data.error.code;
     throw error;
@@ -164,7 +164,7 @@ async function groqRequestWithFallback(preferredGroup, messages, options = {}) {
       continue;
     }
 
-    var t0 = Date.now();
+    const t0 = Date.now();
 
     try {
       const result = await makeGroqRequest(
@@ -205,7 +205,7 @@ async function groqRequestWithFallback(preferredGroup, messages, options = {}) {
 
 // глубокий разбор одного тикера — кидаем в kimi, там контекст побольше
 async function deepAnalysis(ticker, mktData, customPrompt) {
-  var sysMsg = customPrompt || 'Ты крипто-аналитик. Разбирай монету подробно, смотри на все таймфреймы и объёмы. Пиши на русском, можно с форматированием.';
+  const sysMsg = customPrompt || 'Ты разбираешься в крипте лучше большинства. Разбирай монету по полной — таймфреймы, объёмы, всё что видишь. Язык — русский, markdown приветствуется.';
   const messages = [
     { role: 'system', content: sysMsg },
     {
@@ -225,7 +225,7 @@ async function reasoningAnalysis(question, ctx) {
   const messages = [
     {
       role: 'system',
-      content: 'Ты аналитик торговых стратегий. Думай вслух — показывай ход рассуждений, потом делай вывод. Отвечай на русском.'
+      content: 'Ты хорошо шаришь в торговых стратегиях. Рассуждай пошагово — сначала мысли вслух, потом итог. По-русски.'
     },
     {
       role: 'user',
@@ -238,10 +238,10 @@ async function reasoningAnalysis(question, ctx) {
 
 // быстрые сигналы — qwen шустрый, ответ за секунду обычно
 async function quickAnalysis(sym, indicatorData) {
-  var msgs = [
+  const msgs = [
     {
       role: 'system',
-      content: 'Крипто-аналитик. Коротко и по делу: направление, вход, TP, SL, уверенность в процентах. Русский язык.'
+      content: 'Давай кратко: куда идём, где входить, TP/SL и насколько уверен (в %). Без воды, по-русски.'
     },
     {
       role: 'user',
@@ -256,7 +256,7 @@ async function analyzeBacktestResults(backtestResults) {
   const messages = [
     {
       role: 'system',
-      content: 'Ты эксперт по торговым стратегиям. Посмотри на результаты бэктеста и скажи что хорошо, что плохо, и что подкрутить. Структурируй ответ по разделам: общая оценка, сильные стороны, слабые стороны, что улучшить, какие параметры поменять.'
+      content: 'Разбери результаты бэктеста как опытный трейдер. Что сработало, что нет, и где подкрутить. Ответ разбей на блоки: общее впечатление, плюсы, минусы, рекомендации, параметры для оптимизации.'
     },
     {
       role: 'user',
@@ -274,7 +274,7 @@ async function chat(message, history = []) {
   const messages = [
     {
       role: 'system',
-      content: 'Ты AI помощник на платформе KotvukAI. Помогаешь с криптой, трейдингом, теханализом. Будь полезным, отвечай на языке вопроса.'
+      content: 'Ты ассистент KotvukAI. Помогаешь разобраться в крипте, теханализе, стратегиях. Отвечай по-человечески, на языке собеседника.'
     },
     ...history.filter(m => m.role && m.content).slice(-10),
     { role: 'user', content: message }
@@ -287,10 +287,10 @@ async function chat(message, history = []) {
 }
 
 async function selfAnalysis(pastSignals, performanceMetrics) {
-  var messages = [
+  const messages = [
     {
       role: 'system',
-      content: 'Ты торговый бот который умеет анализировать свои ошибки. Посмотри на историю сигналов, найди паттерны — где ошибался, где угадывал. Дай конкретные советы что поменять в следующих сигналах. Раздели ответ на: паттерны ошибок, успешные паттерны, убыточные паттерны, что исправить, веса индикаторов.'
+      content: 'Представь что ты бот, который смотрит на свою историю сделок и пытается понять где облажался. Ищи закономерности: когда был прав, когда нет. Выдай конкретику — что поменять, какие индикаторы перевесить. Разбей на: ошибки, удачи, убыточные паттерны, план улучшений.'
     },
     {
       role: 'user',
@@ -307,7 +307,7 @@ async function selfAnalysis(pastSignals, performanceMetrics) {
 const GROQ_MODEL = MODEL_GROUPS.qwen.model;
 
 function getGroqKey() {
-  var cfg = getConfigForGroup('qwen') || getNextConfig();
+  const cfg = getConfigForGroup('qwen') || getNextConfig();
   return cfg.key;
 }
 

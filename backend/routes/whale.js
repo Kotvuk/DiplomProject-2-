@@ -6,7 +6,7 @@ router.get('/orderbook', async (req, res) => {
     const { symbol = 'BTCUSDT' } = req.query;
     const r = await fetch(`https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=50`);
     res.json(await r.json());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/trades', async (req, res) => {
@@ -23,7 +23,7 @@ router.get('/trades', async (req, res) => {
       .filter(t => t.usdValue >= 100000)
       .sort((a, b) => b.usdValue - a.usdValue);
     res.json(large);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

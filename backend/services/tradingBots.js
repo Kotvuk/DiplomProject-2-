@@ -447,7 +447,7 @@ async function closeTrade(bot, trade, exitPrice, reason) {
       activeBot.stats.losses++;
     }
 
-    var winRate = (activeBot.stats.wins / (activeBot.stats.wins + activeBot.stats.losses)) * 100;
+    const winRate = (activeBot.stats.wins / (activeBot.stats.wins + activeBot.stats.losses)) * 100;
 
     await db.query(
       `UPDATE trading_bots
@@ -537,7 +537,7 @@ async function performSelfAnalysis(botId) {
 }
 
 function extractOptimizationSuggestions(aiContent) {
-  var suggestions = [];
+  const suggestions = [];
 
   if (!aiContent) return suggestions;
 

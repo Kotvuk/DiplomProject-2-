@@ -29,7 +29,7 @@ export default function HeatmapPanel() {
 
   const card = { background: theme.cardBg, border: '1px solid ' + theme.border, borderRadius: 12, padding: 20, marginBottom: 16 };
 
-  var fetchData = useCallback(() => {
+  const fetchData = useCallback(() => {
     fetch('/api/heatmap').then(r => r.json()).then(d => {
       const filtered = (Array.isArray(d) ? d : [])
         .filter(tk => !STABLECOINS.includes(tk.symbol))
@@ -41,13 +41,13 @@ export default function HeatmapPanel() {
 
   useEffect(() => {
     fetchData();
-    var iv = setInterval(fetchData, 15000);
+    const iv = setInterval(fetchData, 15000);
     return () => clearInterval(iv);
   }, [fetchData]);
 
   if (loading) return <div style={{ color: theme.textMuted, textAlign: 'center', padding: 40 }}>{t('loading')}</div>;
 
-  var maxVol = Math.max(...data.map(d => +d.quoteVolume || 0), 1);
+  const maxVol = Math.max(...data.map(d => +d.quoteVolume || 0), 1);
 
   return (
     <div>

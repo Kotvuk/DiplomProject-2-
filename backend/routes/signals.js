@@ -9,8 +9,8 @@ router.get('/', async (req, res) => {
       'SELECT * FROM signals ORDER BY created_at DESC LIMIT 20'
     );
     res.json(signals);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -24,19 +24,19 @@ router.post('/', async (req, res) => {
     );
 
     res.json({ id: result.rows[0].id });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 router.get('/history', async (req, res) => {
   try {
-    var signals = await db.getMany(
+    const signals = await db.getMany(
       'SELECT * FROM signal_results ORDER BY created_at DESC LIMIT 50'
     );
     res.json(signals);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -60,16 +60,12 @@ router.get('/stats', async (req, res) => {
     );
 
     res.json({
-      total,
-      tpHit,
-      slHit,
-      timeout,
-      accuracy,
-      avgScore,
+      total, tpHit, slHit, timeout,
+      accuracy, avgScore,
       pending: parseInt(pendingResult?.cnt || 0)
     });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -88,8 +84,8 @@ router.post('/track', async (req, res) => {
     );
 
     res.json({ id: result.rows[0].id });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -123,8 +119,8 @@ router.post('/:id/resolve', async (req, res) => {
     generateReflection(sig.id).catch(e => console.error('Reflection error:', e.message));
 
     res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

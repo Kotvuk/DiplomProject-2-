@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { analyzeBacktestResults, reasoningAnalysis } = require('../utils/groqKeys');
+const { calcEMASeries, calcRSISeries } = require('./indicators');
 
 const BACKTEST_CONFIG = {
   defaultCapital: 5000,
@@ -12,7 +13,7 @@ const BACKTEST_CONFIG = {
 };
 
 async function loadHistoricalData(symbol, interval = '1h', days = 90) {
-  var limit = calculateKlinesLimit(interval, days);
+  const limit = calculateKlinesLimit(interval, days);
 
   try {
     const response = await fetch(
@@ -42,21 +43,17 @@ async function loadHistoricalData(symbol, interval = '1h', days = 90) {
 
     return klines;
 
-  } catch (error) {
-    console.error('Error loading historical data:', error.message);
-    throw error;
+  } catch (err) {
+    console.error('Error loading historical data:', err.message);
+    throw err;
   }
 }
 
 function calculateKlinesLimit(interval, days) {
   const minutesPerDay = 24 * 60;
   const intervalMinutes = {
-    '1m': 1,
-    '5m': 5,
-    '15m': 15,
-    '1h': 60,
-    '4h': 240,
-    '1d': 1440
+    '1m': 1, '5m': 5, '15m': 15,
+    '1h': 60, '4h': 240, '1d': 1440
   };
 
   const minutes = intervalMinutes[interval] || 60;
@@ -82,44 +79,18 @@ function calculateIndicators(klines, params = {}) {
   };
 }
 
+// EMA серия — берём из indicators.js, убираем начальные null
+// (в backtesting не нужна null-подложка, только значения)
 function calculateEMA(data, period) {
-  const result = [];
-  const k = 2 / (period + 1);
-
-  let ema = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  result.push(ema);
-
-  for (let i = period; i < data.length; i++) {
-    ema = data[i] * k + ema * (1 - k);
-    result.push(ema);
-  }
-
-  return result;
+  const series = calcEMASeries(data, period);
+  return series.filter(v => v !== null);
 }
 
+// RSI серия — тоже через indicators.js
+// добавляем один null впереди для совместимости со стратегиями (offset-логика)
 function calculateRSI(closes, period = 14) {
-  const result = [];
-  const gains = [];
-  const losses = [];
-
-  for (let i = 1; i < closes.length; i++) {
-    const change = closes[i] - closes[i - 1];
-    gains.push(change > 0 ? change : 0);
-    losses.push(change < 0 ? Math.abs(change) : 0);
-  }
-
-  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
-
-  for (let i = period; i < gains.length; i++) {
-    avgGain = (avgGain * (period - 1) + gains[i]) / period;
-    avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
-
-    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-    result.push(100 - 100 / (1 + rs));
-  }
-
-  return new Array(period + 1).fill(null).concat(result);
+  const series = calcRSISeries(closes, period);
+  return [null, ...series];
 }
 
 function calculateMACD(closes) {
@@ -163,12 +134,12 @@ function calculateBollinger(closes, period = 20, stdDev = 2) {
 }
 
 function calculateATR(klines, period = 14) {
-  var trueRanges = [];
+  const trueRanges = [];
 
   for (let i = 1; i < klines.length; i++) {
     const high = klines[i].high;
     const low = klines[i].low;
-    var prevClose = klines[i - 1].close;
+    const prevClose = klines[i - 1].close;
 
     const tr = Math.max(
       high - low,
@@ -178,7 +149,7 @@ function calculateATR(klines, period = 14) {
     trueRanges.push(tr);
   }
 
-  var atr = [];
+  const atr = [];
   let atrValue = trueRanges.slice(0, period).reduce((a, b) => a + b, 0) / period;
   atr.push(atrValue);
 
@@ -209,9 +180,7 @@ function findSupportResistance(highs, lows, closes) {
     }
   }
 
-  const clustered = clusterLevels(levels, closes.length);
-
-  return clustered;
+  return clusterLevels(levels, closes.length);
 }
 
 function clusterLevels(levels, totalBars) {
@@ -241,9 +210,45 @@ function clusterLevels(levels, totalBars) {
     .slice(0, 10);
 }
 
+// --- хелпер для RSI: проверяем выход из зоны ---
+function checkRsiZoneExit(prev, curr, threshold, direction) {
+  if (direction === 'oversold') return prev < threshold && curr >= threshold;
+  return prev > threshold && curr <= threshold;
+}
+
+// процентный стоп: цена * (1 ± pct/100)
+function pctStop(price, pctValue, side) {
+  return side === 'below' ? price * (1 - pctValue / 100) : price * (1 + pctValue / 100);
+}
+
+// уверенность RSI-сигнала по глубине захода в зону
+function rsiConfidence(rsiVal, direction) {
+  if (direction === 'buy') return rsiVal < 25 ? 85 : rsiVal < 35 ? 70 : 55;
+  return rsiVal > 75 ? 85 : rsiVal > 65 ? 70 : 55;
+}
+
+// --- хелпер для S/R: близость к уровню ---
+function isNearLevel(price, levelPrice, tolerancePct) {
+  return Math.abs(price - levelPrice) / levelPrice < tolerancePct;
+}
+
+// MACD: оценка силы пересечения (чем дальше от нуля — тем надёжнее)
+function macdCrossStrength(macdVal, histVal) {
+  const absHist = Math.abs(histVal);
+  if (absHist > 0.001 && Math.abs(macdVal) > 0.0005) return 80;
+  return 65;
+}
+
+// для Bollinger: расстояние от цены до полосы в % от ширины канала
+function bbPosition(price, upper, lower) {
+  const width = upper - lower;
+  if (width === 0) return 0.5;
+  return (price - lower) / width;
+}
+
 const STRATEGIES = {
 
-    ema_cross: {
+  ema_cross: {
     name: 'EMA Crossover',
     description: 'Быстрая EMA пересекает медленную EMA',
     params: { fastPeriod: 9, slowPeriod: 21 },
@@ -253,12 +258,11 @@ const STRATEGIES = {
       const fastEma = indicators.ema9;
       const slowEma = indicators.ema21;
       const atr = indicators.atr14;
-
       const offset = 21;
 
       for (let i = 2; i < fastEma.length; i++) {
         const prevFast = fastEma[i - 1];
-        var prevSlow = slowEma[i - 1];
+        const prevSlow = slowEma[i - 1];
         const currFast = fastEma[i];
         const currSlow = slowEma[i];
         const atrValue = atr[i - offset + 14] || 0;
@@ -290,44 +294,54 @@ const STRATEGIES = {
     }
   },
 
-    rsi_reversal: {
+  rsi_reversal: {
     name: 'RSI Reversal',
     description: 'RSI выходит из зон перекупленности/перепроданности',
-    params: { period: 14, oversold: 30, overbought: 70 },
+    params: { period: 14, oversold: 30, overbought: 70, slPct: 2, tpPct: 4 },
 
     generateSignals(klines, indicators, params = {}) {
       const signals = [];
-      const rsi = indicators.rsi14;
-      const oversold = params.oversold || 30;
-      const overbought = params.overbought || 70;
-      const atr = indicators.atr14;
+      const rsiArr = indicators.rsi14;
+      const oversoldLine = params.oversold || 30;
+      const overboughtLine = params.overbought || 70;
+      const slPercent = params.slPct || 2;
+      const tpPercent = params.tpPct || 4;
 
-      for (let i = 2; i < rsi.length; i++) {
-        if (rsi[i] === null || rsi[i-1] === null) continue;
+      for (let i = 2; i < rsiArr.length; i++) {
+        if (rsiArr[i] === null || rsiArr[i - 1] === null) continue;
 
-        const atrValue = atr[i - 14] || 0;
+        const rsiNow = rsiArr[i];
+        const rsiPrev = rsiArr[i - 1];
 
-        if (rsi[i - 1] < oversold && rsi[i] >= oversold) {
+        // вышли из перепроданности — покупаем
+        if (checkRsiZoneExit(rsiPrev, rsiNow, oversoldLine, 'oversold')) {
+          const klineIdx = i + 15;
+          const entry = klines[klineIdx]?.close;
+          if (!entry) continue;
           signals.push({
-            index: i + 15,
+            index: klineIdx,
             type: 'BUY',
-            price: klines[i + 15]?.close,
-            reason: `RSI (${rsi[i].toFixed(1)}) вышел из зоны перепроданности`,
-            stopLoss: klines[i + 15]?.close - atrValue * 2,
-            takeProfit: klines[i + 15]?.close + atrValue * 3,
-            confidence: rsi[i] < 40 ? 80 : 60
+            price: entry,
+            reason: `RSI (${rsiNow.toFixed(1)}) вышел из зоны перепроданности`,
+            stopLoss: pctStop(entry, slPercent, 'below'),
+            takeProfit: pctStop(entry, tpPercent, 'above'),
+            confidence: rsiConfidence(rsiNow, 'buy')
           });
         }
 
-        if (rsi[i - 1] > overbought && rsi[i] <= overbought) {
+        // вышли из перекупленности — продаём
+        if (checkRsiZoneExit(rsiPrev, rsiNow, overboughtLine, 'overbought')) {
+          const klineIdx = i + 15;
+          const entry = klines[klineIdx]?.close;
+          if (!entry) continue;
           signals.push({
-            index: i + 15,
+            index: klineIdx,
             type: 'SELL',
-            price: klines[i + 15]?.close,
-            reason: `RSI (${rsi[i].toFixed(1)}) вышел из зоны перекупленности`,
-            stopLoss: klines[i + 15]?.close + atrValue * 2,
-            takeProfit: klines[i + 15]?.close - atrValue * 3,
-            confidence: rsi[i] > 60 ? 80 : 60
+            price: entry,
+            reason: `RSI (${rsiNow.toFixed(1)}) вышел из зоны перекупленности`,
+            stopLoss: pctStop(entry, slPercent, 'above'),
+            takeProfit: pctStop(entry, tpPercent, 'below'),
+            confidence: rsiConfidence(rsiNow, 'sell')
           });
         }
       }
@@ -336,41 +350,43 @@ const STRATEGIES = {
     }
   },
 
-    macd_signal: {
+  macd_signal: {
     name: 'MACD Signal',
     description: 'MACD пересекает сигнальную линию',
     params: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
 
     generateSignals(klines, indicators, params = {}) {
       const signals = [];
-      const { macd, signal, histogram } = indicators.macd;
-      const atr = indicators.atr14;
+      const { macd: macdLine, signal: sigLine, histogram: hist } = indicators.macd;
+      const atrSeries = indicators.atr14;
 
-      for (let i = 1; i < histogram.length; i++) {
-        const atrValue = atr[i + 8] || 0;
-        const klineIndex = i + 34;
+      for (let i = 1; i < hist.length; i++) {
+        const curAtr = atrSeries[i + 8] || 0;
+        const candleIdx = i + 34;
+        const closePrice = klines[candleIdx]?.close;
+        if (!closePrice) continue;
 
-        if (histogram[i - 1] < 0 && histogram[i] >= 0) {
+        if (hist[i - 1] < 0 && hist[i] >= 0) {
           signals.push({
-            index: klineIndex,
+            index: candleIdx,
             type: 'BUY',
-            price: klines[klineIndex]?.close,
+            price: closePrice,
             reason: 'MACD пересёк сигнальную линию снизу вверх',
-            stopLoss: klines[klineIndex]?.close - atrValue * 2,
-            takeProfit: klines[klineIndex]?.close + atrValue * 3,
-            confidence: macd[i] > 0 ? 75 : 65
+            stopLoss: closePrice - curAtr * 1.8,
+            takeProfit: closePrice + curAtr * 3.2,
+            confidence: macdCrossStrength(macdLine[i], hist[i])
           });
         }
 
-        if (histogram[i - 1] > 0 && histogram[i] <= 0) {
+        if (hist[i - 1] > 0 && hist[i] <= 0) {
           signals.push({
-            index: klineIndex,
+            index: candleIdx,
             type: 'SELL',
-            price: klines[klineIndex]?.close,
+            price: closePrice,
             reason: 'MACD пересёк сигнальную линию сверху вниз',
-            stopLoss: klines[klineIndex]?.close + atrValue * 2,
-            takeProfit: klines[klineIndex]?.close - atrValue * 3,
-            confidence: macd[i] < 0 ? 75 : 65
+            stopLoss: closePrice + curAtr * 1.8,
+            takeProfit: closePrice - curAtr * 3.2,
+            confidence: macdCrossStrength(macdLine[i], hist[i])
           });
         }
       }
@@ -379,46 +395,49 @@ const STRATEGIES = {
     }
   },
 
-    bollinger_breakout: {
+  bollinger_breakout: {
     name: 'Bollinger Breakout',
     description: 'Пробой ценой полос Боллинджера',
     params: { period: 20, stdDev: 2 },
 
     generateSignals(klines, indicators, params = {}) {
       const signals = [];
-      const { upper, middle, lower } = indicators.bollinger;
-      const atr = indicators.atr14;
+      const band = indicators.bollinger;
+      const bbOffset = 20;
 
-      const offset = 20;
+      for (let i = 1; i < band.upper.length; i++) {
+        const kIdx = i + bbOffset - 1;
+        const curClose = klines[kIdx]?.close;
+        const prevClose = klines[kIdx - 1]?.close;
 
-      for (let i = 1; i < upper.length; i++) {
-        const klineIndex = i + offset - 1;
-        const close = klines[klineIndex]?.close;
-        const atrValue = atr[klineIndex - 14] || 0;
+        if (!curClose || !prevClose) continue;
 
-        if (!close) continue;
+        const bandWidth = band.upper[i] - band.lower[i];
+        const pos = bbPosition(curClose, band.upper[i], band.lower[i]);
 
-        if (close > upper[i] && klines[klineIndex - 1]?.close <= upper[i - 1]) {
+        // пробой вверх — SL на middle, TP на расстоянии ширины канала от верхней полосы
+        if (curClose > band.upper[i] && prevClose <= band.upper[i - 1]) {
           signals.push({
-            index: klineIndex,
+            index: kIdx,
             type: 'BUY',
-            price: close,
-            reason: `Пробой верхней полосы Боллинджера (${upper[i].toFixed(2)})`,
-            stopLoss: middle[i],
-            takeProfit: close + atrValue * 3,
-            confidence: 70
+            price: curClose,
+            reason: `Пробой верхней полосы Боллинджера (${band.upper[i].toFixed(2)})`,
+            stopLoss: band.middle[i],
+            takeProfit: band.upper[i] + bandWidth * 0.75,
+            confidence: pos > 1.05 ? 75 : 65
           });
         }
 
-        if (close < lower[i] && klines[klineIndex - 1]?.close >= lower[i - 1]) {
+        // пробой вниз — SL на middle, TP на расстоянии ширины канала от нижней полосы
+        if (curClose < band.lower[i] && prevClose >= band.lower[i - 1]) {
           signals.push({
-            index: klineIndex,
+            index: kIdx,
             type: 'SELL',
-            price: close,
-            reason: `Пробой нижней полосы Боллинджера (${lower[i].toFixed(2)})`,
-            stopLoss: middle[i],
-            takeProfit: close - atrValue * 3,
-            confidence: 70
+            price: curClose,
+            reason: `Пробой нижней полосы Боллинджера (${band.lower[i].toFixed(2)})`,
+            stopLoss: band.middle[i],
+            takeProfit: band.lower[i] - bandWidth * 0.75,
+            confidence: pos < -0.05 ? 75 : 65
           });
         }
       }
@@ -427,56 +446,53 @@ const STRATEGIES = {
     }
   },
 
-    support_resistance: {
+  support_resistance: {
     name: 'Support/Resistance',
     description: 'Отскок от уровней поддержки/сопротивления',
     params: { lookback: 20, tolerance: 0.02 },
 
     generateSignals(klines, indicators, params = {}) {
-      const signals = [];
-      const levels = indicators.supportResistance;
-      const atr = indicators.atr14;
-      const tolerance = params.tolerance || 0.02;
+      const collected = [];
+      const srLevels = indicators.supportResistance;
+      const atrArr = indicators.atr14;
+      const proximity = params.tolerance || 0.02;
 
+      // начинаем с 50-й свечи — раньше нет смысла, уровни ещё не сформировались
       for (let i = 50; i < klines.length; i++) {
-        const close = klines[i].close;
-        const low = klines[i].low;
-        const high = klines[i].high;
-        const atrValue = atr[i - 14] || 0;
+        const bar = klines[i];
+        const localAtr = atrArr[i - 14] || 0;
 
-        for (const level of levels) {
-          const diff = Math.abs(close - level.price) / level.price;
+        for (const level of srLevels) {
+          if (!isNearLevel(bar.close, level.price, proximity)) continue;
 
-          if (diff < tolerance) {
+          // SL за уровень + 2% буфер, TP через 2.5 ATR
+          if (level.type === 'support' && bar.low <= level.price * 1.01) {
+            collected.push({
+              index: i,
+              type: 'BUY',
+              price: bar.close,
+              reason: `Отскок от поддержки $${level.price.toFixed(2)} (сила: ${level.strength})`,
+              stopLoss: level.price * 0.98,
+              takeProfit: bar.close + localAtr * 2.5,
+              confidence: Math.min(90, 55 + level.strength * 7)
+            });
+          }
 
-            if (level.type === 'support' && low <= level.price * 1.01) {
-              signals.push({
-                index: i,
-                type: 'BUY',
-                price: close,
-                reason: `Отскок от поддержки $${level.price.toFixed(2)} (сила: ${level.strength})`,
-                stopLoss: level.price * 0.98,
-                takeProfit: close + atrValue * 3,
-                confidence: 60 + level.strength * 5
-              });
-            }
-
-            if (level.type === 'resistance' && high >= level.price * 0.99) {
-              signals.push({
-                index: i,
-                type: 'SELL',
-                price: close,
-                reason: `Отскок от сопротивления $${level.price.toFixed(2)} (сила: ${level.strength})`,
-                stopLoss: level.price * 1.02,
-                takeProfit: close - atrValue * 3,
-                confidence: 60 + level.strength * 5
-              });
-            }
+          if (level.type === 'resistance' && bar.high >= level.price * 0.99) {
+            collected.push({
+              index: i,
+              type: 'SELL',
+              price: bar.close,
+              reason: `Отскок от сопротивления $${level.price.toFixed(2)} (сила: ${level.strength})`,
+              stopLoss: level.price * 1.02,
+              takeProfit: bar.close - localAtr * 2.5,
+              confidence: Math.min(90, 55 + level.strength * 7)
+            });
           }
         }
       }
 
-      return deduplicateSignals(signals);
+      return deduplicateSignals(collected);
     }
   }
 };
@@ -507,11 +523,9 @@ async function runBacktest(options) {
     userId = null
   } = options;
 
-  console.log(`
-Starting backtest: ${strategyName} on ${symbol} ${interval} (${days} days)`);
+  console.log(`\nStarting backtest: ${strategyName} on ${symbol} ${interval} (${days} days)`);
 
   const klines = await loadHistoricalData(symbol, interval, days);
-
   const indicators = calculateIndicators(klines);
 
   const strategy = STRATEGIES[strategyName];
@@ -603,7 +617,8 @@ function simulateTrades(klines, signals, options) {
     const entryFee = positionValue * (feePercent / 100);
     balance -= positionValue + entryFee;
 
-    const position = {
+    // тут формируем объект позиции
+    const pos = {
       id: tradeId++,
       direction,
       entryPrice,
@@ -617,8 +632,9 @@ function simulateTrades(klines, signals, options) {
       confidence: signal.confidence || 70
     };
 
-    positions.push(position);
+    positions.push(pos);
 
+    // проходим по свечам после входа, ищем выход по SL/TP
     for (let i = signal.index; i < klines.length; i++) {
       const candle = klines[i];
       let closed = false;
@@ -648,7 +664,6 @@ function simulateTrades(klines, signals, options) {
       }
 
       if (closed) {
-
         const pnl = direction === 'BUY'
           ? (exitPrice - entryPrice) * positionSize
           : (entryPrice - exitPrice) * positionSize;
@@ -661,7 +676,7 @@ function simulateTrades(klines, signals, options) {
         maxEquity = Math.max(maxEquity, equity);
 
         trades.push({
-          ...position,
+          ...pos,
           exitPrice,
           exitTime: candle.closeTime,
           exitIndex: i,
@@ -674,36 +689,37 @@ function simulateTrades(klines, signals, options) {
           returnPct: (netPnl / positionValue) * 100
         });
 
-        positions = positions.filter(p => p.id !== position.id);
+        positions = positions.filter(p => p.id !== pos.id);
         break;
       }
     }
   }
 
-  for (const position of positions) {
+  // закрываем оставшиеся позиции по последней свече
+  for (const openPos of positions) {
     const lastCandle = klines[klines.length - 1];
     const exitPrice = lastCandle.close;
-    const pnl = position.direction === 'BUY'
-      ? (exitPrice - position.entryPrice) * position.size
-      : (position.entryPrice - exitPrice) * position.size;
+    const pnl = openPos.direction === 'BUY'
+      ? (exitPrice - openPos.entryPrice) * openPos.size
+      : (openPos.entryPrice - exitPrice) * openPos.size;
 
-    const exitFee = position.size * exitPrice * (feePercent / 100);
+    const exitFee = openPos.size * exitPrice * (feePercent / 100);
     const netPnl = pnl - exitFee;
 
-    balance += position.value + netPnl;
+    balance += openPos.value + netPnl;
 
     trades.push({
-      ...position,
+      ...openPos,
       exitPrice,
       exitTime: lastCandle.closeTime,
       exitIndex: klines.length - 1,
       exitReason: 'End of Backtest',
       pnl,
       netPnl,
-      fees: position.value * (feePercent / 100) + exitFee,
+      fees: openPos.value * (feePercent / 100) + exitFee,
       balance,
       equity: balance,
-      returnPct: (netPnl / position.value) * 100
+      returnPct: (netPnl / openPos.value) * 100
     });
   }
 
@@ -713,18 +729,9 @@ function simulateTrades(klines, signals, options) {
 function calculateMetrics(trades, initialCapital) {
   if (trades.length === 0) {
     return {
-      totalTrades: 0,
-      winRate: 0,
-      roi: 0,
-      profitFactor: 0,
-      maxDrawdown: 0,
-      sharpeRatio: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      avgReturn: 0,
-      maxWin: 0,
-      maxLoss: 0,
-      avgHoldingTime: 0
+      totalTrades: 0, winRate: 0, roi: 0, profitFactor: 0,
+      maxDrawdown: 0, sharpeRatio: 0, avgWin: 0, avgLoss: 0,
+      avgReturn: 0, maxWin: 0, maxLoss: 0, avgHoldingTime: 0
     };
   }
 
@@ -734,7 +741,13 @@ function calculateMetrics(trades, initialCapital) {
   const totalWins = wins.reduce((sum, t) => sum + t.netPnl, 0);
   const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.netPnl, 0));
 
-  const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+  // profitFactor — разбиваем на if/else чтобы было понятнее
+  let profitFactor;
+  if (totalLosses > 0) {
+    profitFactor = totalWins / totalLosses;
+  } else {
+    profitFactor = totalWins > 0 ? Infinity : 0;
+  }
 
   let maxEquity = initialCapital;
   let maxDrawdown = 0;
@@ -751,11 +764,15 @@ function calculateMetrics(trades, initialCapital) {
     }
   }
 
+  // sharpe ratio
   const returns = trades.map(t => t.returnPct);
   const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-  const stdReturn = Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length);
+  const stdReturn = Math.sqrt(
+    returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length
+  );
   const sharpeRatio = stdReturn > 0 ? (avgReturn / stdReturn) * Math.sqrt(252) : 0;
 
+  // среднее время удержания позиции (в часах)
   const holdingTimes = trades.map(t => {
     const entry = new Date(t.entryTime).getTime();
     const exit = new Date(t.exitTime).getTime();
@@ -798,16 +815,9 @@ async function saveBacktestResult(result, userId) {
         metrics = EXCLUDED.metrics,
         trades = EXCLUDED.trades`,
       [
-        result.id,
-        userId,
-        result.symbol,
-        result.interval,
-        result.days,
-        result.strategy,
-        result.strategyName,
-        result.capital,
-        result.leverage,
-        result.signalsCount,
+        result.id, userId, result.symbol, result.interval,
+        result.days, result.strategy, result.strategyName,
+        result.capital, result.leverage, result.signalsCount,
         result.tradesCount,
         JSON.stringify(result.metrics),
         JSON.stringify(result.trades)
@@ -816,8 +826,8 @@ async function saveBacktestResult(result, userId) {
 
     console.log(` Backtest result saved: ${result.id}`);
 
-  } catch (error) {
-    console.error('Error saving backtest result:', error.message);
+  } catch (err) {
+    console.error('Error saving backtest result:', err.message);
   }
 }
 
@@ -851,8 +861,8 @@ async function getAIBacktestAnalysis(result) {
 
     return analysis?.choices?.[0]?.message?.content || null;
 
-  } catch (error) {
-    console.error('AI analysis error:', error.message);
+  } catch (err) {
+    console.error('AI analysis error:', err.message);
     return null;
   }
 }
@@ -868,11 +878,7 @@ async function optimizeStrategy(strategyName, symbol, interval, days, paramRange
   for (const params of combinations.slice(0, 20)) {
     try {
       const result = await runBacktest({
-        symbol,
-        interval,
-        days,
-        strategyName,
-        params
+        symbol, interval, days, strategyName, params
       });
 
       results.push({
@@ -883,8 +889,8 @@ async function optimizeStrategy(strategyName, symbol, interval, days, paramRange
         sharpeRatio: result.metrics.sharpeRatio
       });
 
-    } catch (error) {
-      console.error('Optimization error:', error.message);
+    } catch (err) {
+      console.error('Optimization error:', err.message);
     }
   }
 
@@ -917,23 +923,17 @@ function generateParamCombinations(ranges) {
 }
 
 module.exports = {
-
   BACKTEST_CONFIG,
   STRATEGIES,
-
   runBacktest,
   loadHistoricalData,
   calculateIndicators,
   simulateTrades,
   calculateMetrics,
-
   saveBacktestResult,
   getBacktestHistory,
-
   getAIBacktestAnalysis,
-
   optimizeStrategy,
-
   calculateEMA,
   calculateRSI,
   calculateMACD,

@@ -22,7 +22,7 @@ function connectBinance() {
 
     binanceWs.on('message', (data) => {
       try {
-        var msg = JSON.parse(data.toString());
+        const msg = JSON.parse(data.toString());
         if (msg.e === '24hrMiniTicker') {
           const priceUpdate = {
             type: 'price',
@@ -74,7 +74,7 @@ function setupWebSocket(server) {
   wss.on('connection', (ws) => {
     console.log('[WS] Client connected');
 
-    var snapshot = {
+    const snapshot = {
       type: 'snapshot',
       prices: latestPrices
     };
@@ -82,7 +82,7 @@ function setupWebSocket(server) {
 
     ws.on('message', (msg) => {
       try {
-        var data = JSON.parse(msg.toString());
+        const data = JSON.parse(msg.toString());
 
         if (data.type === 'ping') {
           ws.send(JSON.stringify({ type: 'pong' }));

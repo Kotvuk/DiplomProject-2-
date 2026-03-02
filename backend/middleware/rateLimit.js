@@ -1,7 +1,7 @@
 const dailyAiUsage = {};
 
 function getAiUsageKey(userId) {
-  var today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
   return `${userId || 'anon'}_${today}`;
 }
 
@@ -12,7 +12,7 @@ function checkAiLimit(req, res) {
   if (limit === -1) return true;
 
   const key = getAiUsageKey(req.userId);
-  var used = dailyAiUsage[key] || 0;
+  const used = dailyAiUsage[key] || 0;
   if (used >= limit) {
     res.status(429).json({
       error: 'limit_reached',

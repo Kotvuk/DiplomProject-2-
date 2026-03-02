@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 
-var pool = new Pool({
+const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
@@ -27,7 +27,7 @@ async function query(text, params = []) {
 }
 
 async function getOne(text, params = []) {
-  var result = await query(text, params);
+  const result = await query(text, params);
   return result.rows[0] || null;
 }
 
@@ -38,7 +38,7 @@ async function getMany(text, params = []) {
 
 async function insert(table, data) {
   const columns = Object.keys(data);
-  var values = Object.values(data);
+  const values = Object.values(data);
   const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
 
   const text = `
@@ -82,7 +82,7 @@ async function transaction(callback) {
   try {
     await client.query('BEGIN');
 
-    var result = await callback({
+    const result = await callback({
       query: async (text, params) => client.query(text, params),
       getOne: async (text, params) => {
         const result = await client.query(text, params);

@@ -18,9 +18,9 @@ function fngLabelKey(v) { return v <= 25 ? 'extremeFear' : v <= 45 ? 'fear' : v 
 export default function DashboardPanel() {
   const { t } = useLang();
   const { theme } = useTheme();
-  const [data, setData] = useState(null);
   const [rec, setRec] = useState('');
   const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
   const { prices: wsPrices, connected: wsConnected } = useWebSocket();
 
   const styles = getStyles(theme);

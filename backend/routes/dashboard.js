@@ -5,7 +5,7 @@ const { quickAnalysis } = require('../utils/groqKeys');
 
 router.get('/', async (req, res) => {
   try {
-    var closed = await db.getMany("SELECT * FROM trades WHERE status = 'closed'");
+    const closed = await db.getMany("SELECT * FROM trades WHERE status = 'closed'");
     const totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
 
     const allSignals = await db.getMany("SELECT * FROM signal_results WHERE result != 'pending'");
@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
       "SELECT * FROM signal_results WHERE DATE(created_at) = $1 AND result = 'tp_hit' ORDER BY accuracy_score DESC LIMIT 1",
       [today]
     );
-    var bestSignal = todaySignals[0] || null;
+    const bestSignal = todaySignals[0] || null;
 
     let topMover = null;
     try {
@@ -29,18 +29,18 @@ router.get('/', async (req, res) => {
         filtered.sort((a, b) => Math.abs(+b.priceChangePercent) - Math.abs(+a.priceChangePercent));
         topMover = { symbol: filtered[0].symbol, change: +filtered[0].priceChangePercent };
       }
-    } catch (e) {}
+    } catch (e) { /* binance может быть недоступен */ }
 
     let fngValue = null;
     try {
       const r = await fetch('https://api.alternative.me/fng/?limit=1');
       const d = await r.json();
       fngValue = d.data?.[0]?.value || null;
-    } catch (e) {}
+    } catch (e) { /* ok, не критично */ }
 
     res.json({ totalPnl, signalAccuracy, totalSignals: allSignals.length, bestSignal, topMover, fngValue });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -53,7 +53,7 @@ router.get('/recommendation', async (req, res) => {
     res.json({
       recommendation: data?.choices?.[0]?.message?.content || 'Торгуйте осторожно'
     });
-  } catch (e) {
+  } catch (err) {
     res.json({ recommendation: 'Следите за рынком' });
   }
 });

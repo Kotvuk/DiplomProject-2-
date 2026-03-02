@@ -10,7 +10,7 @@ function calcEMA(closes, period) {
 
 function calcEMASeries(closes, period) {
   if (closes.length < period) return [];
-  var k = 2 / (period + 1);
+  const k = 2 / (period + 1);
   const series = new Array(period - 1).fill(null);
   let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
   series.push(ema);
@@ -45,7 +45,7 @@ function calcRSISeries(closes, period = 14) {
   const series = new Array(period).fill(null);
   let gains = 0, losses = 0;
   for (let i = 1; i <= period; i++) {
-    var diff = closes[i] - closes[i - 1];
+    const diff = closes[i] - closes[i - 1];
     if (diff > 0) gains += diff; else losses -= diff;
   }
   let avgGain = gains / period;
@@ -89,7 +89,7 @@ function calcMACD(closes, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
   }
 
   const lastMacd = validMacd[validMacd.length - 1];
-  var histogram = +(lastMacd - signal).toFixed(6);
+  const histogram = +(lastMacd - signal).toFixed(6);
 
   return { macd: +lastMacd.toFixed(6), signal: +signal.toFixed(6), histogram };
 }
@@ -98,7 +98,7 @@ function calcMACDSeries(closes, fastPeriod = 12, slowPeriod = 26, signalPeriod =
   const ema12 = calcEMASeries(closes, fastPeriod);
   const ema26 = calcEMASeries(closes, slowPeriod);
 
-  var macdLine = [];
+  const macdLine = [];
   for (let i = 0; i < closes.length; i++) {
     if (ema12[i] !== null && ema26[i] !== null) {
       macdLine.push(+(ema12[i] - ema26[i]).toFixed(6));
@@ -108,7 +108,7 @@ function calcMACDSeries(closes, fastPeriod = 12, slowPeriod = 26, signalPeriod =
   }
 
   const validIndices = [];
-  var validValues = [];
+  const validValues = [];
   for (let i = 0; i < macdLine.length; i++) {
     if (macdLine[i] !== null) {
       validIndices.push(i);

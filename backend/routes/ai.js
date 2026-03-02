@@ -8,46 +8,24 @@ const {
   deepAnalysis,
   quickAnalysis,
   chat,
-  getStats: getAiStats,
   groqRequestWithFallback
 } = require('../utils/groqKeys');
+const { ALLOWED_SYMBOLS_SET: ALLOWED_SYMBOLS } = require('../utils/symbols');
 
 router.get('/usage', (req, res) => {
   const plan = req.user?.plan || 'Free';
   const limits = { Free: 5, Pro: 50, Premium: -1 };
-  var limit = limits[plan];
+  const limit = limits[plan];
   const key = getAiUsageKey(req.userId);
   const used = dailyAiUsage[key] || 0;
-
-  const aiStats = getAiStats();
 
   res.json({
     used,
     limit,
     remaining: limit === -1 ? 'unlimited' : Math.max(0, limit - used),
-    plan,
-    models: {
-      kimi: { keys: aiStats.keyCounts.kimi },
-      deepseek: { keys: aiStats.keyCounts.deepseek },
-      qwen: { keys: aiStats.keyCounts.qwen }
-    }
+    plan
   });
 });
-
-router.get('/stats', (req, res) => {
-  const stats = getAiStats();
-  res.json(stats);
-});
-
-const ALLOWED_SYMBOLS = new Set([
-  'BTCUSDT','ETHUSDT','BNBUSDT','XRPUSDT','SOLUSDT','ADAUSDT','DOGEUSDT',
-  'AVAXUSDT','DOTUSDT','MATICUSDT','LINKUSDT','UNIUSDT','LTCUSDT','ATOMUSDT',
-  'NEARUSDT','APTUSDT','ARBUSDT','OPUSDT','INJUSDT','SUIUSDT','SEIUSDT',
-  'TIAUSDT','JUPUSDT','WLDUSDT','FTMUSDT','AAVEUSDT','MKRUSDT','COMPUSDT',
-  'SNXUSDT','CRVUSDT','LDOUSDT','STETHUSDT','RNDRUSDT','FETUSDT','AGIXUSDT',
-  'OCEANUSDT','TAOUSDT','GRTUSDT','FLOWUSDT','IMXUSDT','SANDUSDT','MANAUSDT',
-  'AXSUSDT','GALAUSDT'
-]);
 
 router.post('/analyze', async (req, res) => {
   if (!checkAiLimit(req, res)) return;
@@ -59,6 +37,7 @@ router.post('/analyze', async (req, res) => {
       return res.status(400).json({ error: 'Invalid symbol. Use one of the supported pairs.' });
     }
 
+    // собираем индикаторы по всем таймфреймам
     const timeframes = ['5m', '15m', '1h', '4h', '1d', '1w'];
     const indicators = {};
 
@@ -74,18 +53,20 @@ router.post('/analyze', async (req, res) => {
       }
     }
 
+    // корреляция с BTC если анализируем альт
     let btcContext = '';
     if (symbol && symbol !== 'BTCUSDT') {
       try {
-        var r = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
+        const r = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
         const btcData = await r.json();
         const btcChange = (+btcData.priceChangePercent).toFixed(2);
         const btcTrend = +btcChange > 0 ? 'bullish' : 'bearish';
         btcContext = `\n\n📊 BTC Correlation: BTC 24h trend: ${btcChange > 0 ? '+' : ''}${btcChange}% (${btcTrend})`;
-      } catch (e) {}
+      } catch (e) { /* не страшно */ }
     }
 
-    var pastSignals = await db.getMany('SELECT * FROM signal_results ORDER BY created_at DESC LIMIT 10');
+    // подтягиваем историю сигналов для самообучения
+    const pastSignals = await db.getMany('SELECT * FROM signal_results ORDER BY created_at DESC LIMIT 10');
     let learningContext = '';
     if (pastSignals.length > 0) {
       learningContext = '\n\n🧠 SELF-LEARNING — Last 10 signals:\n';
@@ -96,24 +77,27 @@ router.post('/analyze', async (req, res) => {
       }
     }
 
+    // формируем текст индикаторов
     let indicatorText = '';
     for (const tf of timeframes) {
       if (indicators[tf]) {
-        var ind = indicators[tf];
+        const ind = indicators[tf];
         indicatorText += `\n[${tf.toUpperCase()}] RSI: ${ind.rsi14 ?? 'N/A'} | EMA: ${ind.ema9?.toFixed(2) || 'N/A'}/${ind.ema21?.toFixed(2) ?? 'N/A'}/${ind.ema50?.toFixed(2) || 'N/A'}`;
       }
     }
 
+    // проверяем согласованность таймфреймов
     const tfSignals = {};
     for (const tf of timeframes) {
       if (indicators[tf]) {
         const ind = indicators[tf];
-        tfSignals[tf] = (ind.rsi14 && ind.rsi14 > 50) && (ind.ema9 && ind.ema21 && ind.ema9 > ind.ema21) ? 'bullish' : 'bearish';
+        const isBullish = (ind.rsi14 && ind.rsi14 > 50) && (ind.ema9 && ind.ema21 && ind.ema9 > ind.ema21);
+        tfSignals[tf] = isBullish ? 'bullish' : 'bearish';
       }
     }
 
     const values = Object.values(tfSignals);
-    var allSame = values.length > 1 && new Set(values).size === 1;
+    const allSame = values.length > 1 && new Set(values).size === 1;
     const tfAgreement = values.length > 1
       ? allSame ? `\n\n⚡ All timeframes AGREE: ${values[0].toUpperCase()}`
         : `\n\n⚠️ Timeframes DISAGREE`
@@ -147,12 +131,13 @@ router.post('/analyze', async (req, res) => {
 - Рекомендуемый размер позиции`;
 
     const customData = await groqRequestWithFallback('kimi', [
-      { role: 'system', content: 'Ты — профессиональный крипто-аналитик. Отвечай на русском с markdown.' },
+      { role: 'system', content: 'Ты крипто-аналитик. Отвечай по-русски, используй markdown для структуры.' },
       { role: 'user', content: prompt }
     ], { maxTokens: 4000, temperature: 0.6 });
 
     const text = customData?.choices?.[0]?.message?.content || 'Ошибка получения ответа';
 
+    // парсим confidence и coin score из ответа
     let confidence = null;
     let coinScore = null;
     const confMatch = text.match(/[Уу]веренность[:\s]*(\d{1,3})\s*%/i) || text.match(/(\d{1,3})\s*%/);
@@ -173,6 +158,7 @@ router.post('/analyze', async (req, res) => {
     if (tpMatch) tpPrice = +tpMatch[1].replace(',', '');
     if (slMatch) slPrice = +slMatch[1].replace(',', '');
 
+    // сохраняем сигнал если есть направление
     if (direction && price) {
       try {
         await db.query(
@@ -195,9 +181,8 @@ router.post('/analyze', async (req, res) => {
       model: customData._meta
     });
 
-  } catch (e) {
-    console.error('AI analyze error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -216,8 +201,8 @@ router.post('/quick', async (req, res) => {
 
     res.json({ analysis: text, model: data._meta });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -234,8 +219,8 @@ router.post('/chat', async (req, res) => {
       model: data._meta
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -1,4 +1,4 @@
-var translations = {
+const translations = {
   ru: {
     loading: 'Загрузка...', analyzing: 'Анализирую...',
     dashboard: 'Дашборд',

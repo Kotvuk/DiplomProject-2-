@@ -1,7 +1,7 @@
 const db = require('../config/database');
 
-var VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
-var VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 
 async function saveSubscription(userId, subscription) {
   try {
@@ -116,7 +116,7 @@ async function broadcast(notification) {
 }
 
 async function sendPushNotification(subscription, notification) {
-  var { endpoint, p256dh, auth } = subscription;
+  const { endpoint, p256dh, auth } = subscription;
 
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
     console.log('[Push] VAPID keys not configured, skipping push to ' + endpoint.slice(0, 50));
@@ -124,7 +124,7 @@ async function sendPushNotification(subscription, notification) {
   }
 
   try {
-    var webPush = require('web-push');
+    const webPush = require('web-push');
     webPush.setVapidDetails('mailto:support@kotvuk.ai', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
     await webPush.sendNotification(
       { endpoint, keys: { p256dh, auth } },

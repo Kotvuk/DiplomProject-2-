@@ -4,15 +4,14 @@ const analytics = require('../services/analytics');
 
 router.get('/pnl/history', async (req, res) => {
   try {
-    var userId = req.user?.id;
+    const userId = req.user?.id;
     const { period = 'month', limit = 12 } = req.query;
 
-    var result = await analytics.getPnLHistory(userId, period, parseInt(limit));
+    const result = await analytics.getPnLHistory(userId, period, parseInt(limit));
     res.json(result);
 
-  } catch (e) {
-    console.error('P&L history error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -24,9 +23,8 @@ router.get('/pnl/daily', async (req, res) => {
     const result = await analytics.getDailyPnL(userId, parseInt(days));
     res.json(result);
 
-  } catch (e) {
-    console.error('Daily P&L error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -38,9 +36,8 @@ router.get('/risk/var', async (req, res) => {
     const result = await analytics.calculateVaR(userId, parseFloat(confidence));
     res.json(result);
 
-  } catch (e) {
-    console.error('VaR calculation error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -52,9 +49,8 @@ router.get('/risk/sharpe', async (req, res) => {
     const result = await analytics.calculateSharpeRatio(userId, parseFloat(riskFreeRate));
     res.json(result);
 
-  } catch (e) {
-    console.error('Sharpe ratio error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -65,9 +61,8 @@ router.get('/risk/drawdown', async (req, res) => {
     const result = await analytics.calculateMaxDrawdown(userId);
     res.json(result);
 
-  } catch (e) {
-    console.error('Drawdown calculation error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -75,7 +70,7 @@ router.get('/risk/overview', async (req, res) => {
   try {
     const userId = req.user?.id;
 
-    var [var95, var99, sharpe, drawdown] = await Promise.all([
+    const [var95, var99, sharpe, drawdown] = await Promise.all([
       analytics.calculateVaR(userId, 0.95),
       analytics.calculateVaR(userId, 0.99),
       analytics.calculateSharpeRatio(userId),
@@ -89,9 +84,8 @@ router.get('/risk/overview', async (req, res) => {
       drawdown: drawdown
     });
 
-  } catch (e) {
-    console.error('Risk overview error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -102,9 +96,8 @@ router.get('/correlation', async (req, res) => {
     const result = await analytics.getCorrelationMatrix(userId);
     res.json(result);
 
-  } catch (e) {
-    console.error('Correlation matrix error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -115,9 +108,8 @@ router.get('/attribution', async (req, res) => {
     const result = await analytics.getPerformanceAttribution(userId);
     res.json(result);
 
-  } catch (e) {
-    console.error('Performance attribution error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -148,9 +140,8 @@ router.get('/dashboard', async (req, res) => {
       last_updated: new Date().toISOString()
     });
 
-  } catch (e) {
-    console.error('Analytics dashboard error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

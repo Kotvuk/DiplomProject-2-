@@ -15,7 +15,7 @@ function confidenceBadge(conf, theme) {
 
 function coinScoreCircle(score, theme) {
   if (!score) return '—';
-  var color = score >= 7 ? theme.green : score >= 4 ? theme.yellow : theme.red;
+  const color = score >= 7 ? theme.green : score >= 4 ? theme.yellow : theme.red;
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: `${color}22`, color, fontSize: 13, fontWeight: 700, border: `2px solid ${color}` }}>
       {score}
@@ -53,7 +53,7 @@ export default function AIPanel() {
   const [loading, setLoading] = useState({});
   const [modal, setModal] = useState(null);
   const [history, setHistory] = useState([]);
-  var [usage, setUsage] = useState({ used: 0, limit: 5, remaining: 5, plan: 'Free' });
+  const [usage, setUsage] = useState({ used: 0, limit: 5, remaining: 5, plan: 'Free' });
   const [showLimitModal, setShowLimitModal] = useState(false);
 
   const card = { background: theme.cardBg, border: '1px solid ' + theme.border, borderRadius: 12, padding: 20, marginBottom: 16 };

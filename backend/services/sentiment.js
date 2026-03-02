@@ -38,7 +38,7 @@ function analyzeTextSentiment(text) {
   let greedScore = 0;
 
   for (const [keyword, weight] of Object.entries(bullishKeywords)) {
-    var regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
     const matches = lowerText.match(regex);
     if (matches) {
       bullishScore += weight * matches.length;
@@ -60,7 +60,7 @@ function analyzeTextSentiment(text) {
     if (lowerText.includes(word)) greedScore++;
   }
 
-  var totalScore = bullishScore - bearishScore;
+  const totalScore = bullishScore - bearishScore;
   const normalizedScore = Math.max(-100, Math.min(100, totalScore * 5));
 
   let label, confidence;
@@ -100,7 +100,7 @@ async function getNewsSentiment(symbols = ['BTC', 'ETH', 'crypto']) {
 
     try {
       const response = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&limit=20');
-      var data = await response.json();
+      const data = await response.json();
 
       if (data.Data) {
         for (const item of data.Data) {
@@ -154,7 +154,7 @@ async function getNewsSentiment(symbols = ['BTC', 'ETH', 'crypto']) {
 
 function extractSymbols(title, categories) {
   const symbols = [];
-  var symbolPattern = /\b(BTC|ETH|XRP|SOL|ADA|DOGE|DOT|AVAX|MATIC|LINK|UNI|ATOM|LTC|BCH|XLM|ALGO|VET|FIL|NEAR|APT|ARB|OP)\b/gi;
+  const symbolPattern = /\b(BTC|ETH|XRP|SOL|ADA|DOGE|DOT|AVAX|MATIC|LINK|UNI|ATOM|LTC|BCH|XLM|ALGO|VET|FIL|NEAR|APT|ARB|OP)\b/gi;
 
   const matches = (title + ' ' + (categories || '')).match(symbolPattern);
   if (matches) {
@@ -179,7 +179,7 @@ async function getSocialSentiment(symbol = 'BTC') {
     let fearGreedData = null;
     try {
       const response = await fetch('https://api.alternative.me/fng/?limit=7');
-      var data = await response.json();
+      const data = await response.json();
       if (data.data) {
         fearGreedData = {
           current: {

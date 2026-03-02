@@ -27,9 +27,9 @@ export default function AlertsPanel() {
   const [message, setMessage] = useState('');
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [triggeredAlerts, setTriggeredAlerts] = useState([]);
-  var knownTriggered = useRef(new Set());
+  const knownTriggered = useRef(new Set());
 
-  var fetchAlerts = useCallback(async () => {
+  const fetchAlerts = useCallback(async () => {
     try {
       const [aR, tR] = await Promise.all([fetch('/api/alerts?status=active'), fetch('/api/alerts?status=triggered')]);
       setActiveAlerts(await aR.json());

@@ -1,5 +1,5 @@
 const express = require('express');
-var router = express.Router();
+const router = express.Router();
 const db = require('../config/database');
 const { hashPassword, generateTokens } = require('../utils/crypto');
 const { requireAdmin } = require('../middleware/auth');
@@ -42,8 +42,8 @@ router.post('/setup', async (req, res) => {
       user: { id: result.rows[0].id, name, email, plan: 'Free', is_admin: true }
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -53,8 +53,8 @@ router.get('/users', requireAdmin, async (req, res) => {
       'SELECT id, name, email, plan, is_admin, two_factor_enabled, created_at FROM users ORDER BY created_at DESC'
     );
     res.json(users.map(u => ({ ...u, two_factor_enabled: !!u.two_factor_enabled })));
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -68,8 +68,8 @@ router.patch('/users/:id/plan', requireAdmin, async (req, res) => {
 
     await db.query('UPDATE users SET plan = $1 WHERE id = $2', [plan, req.params.id]);
     res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -87,8 +87,8 @@ router.patch('/users/:id/admin', requireAdmin, async (req, res) => {
 
     await db.query('UPDATE users SET is_admin = $1 WHERE id = $2', [is_admin, req.params.id]);
     res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -100,8 +100,8 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
 
     await db.query('DELETE FROM users WHERE id = $1', [req.params.id]);
     res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -118,7 +118,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
       "SELECT * FROM signal_results WHERE result != 'pending'"
     );
 
-    var tpHit = resolvedSignals.filter(s => s.result === 'tp_hit').length;
+    const tpHit = resolvedSignals.filter(s => s.result === 'tp_hit').length;
     const signalAccuracy = resolvedSignals.length > 0
       ? (tpHit / resolvedSignals.length * 100)
       : 0;
@@ -135,15 +135,15 @@ router.get('/stats', requireAdmin, async (req, res) => {
       signalAccuracy: parseFloat(signalAccuracy.toFixed(2))
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 router.get('/signals', requireAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    var limit = parseInt(req.query.limit) || 50;
+    const limit = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
 
     const signals = await db.getMany(
@@ -157,15 +157,13 @@ router.get('/signals', requireAdmin, async (req, res) => {
     res.json({
       signals,
       pagination: {
-        page,
-        limit,
-        total,
+        page, limit, total,
         totalPages: Math.ceil(total / limit)
       }
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -183,8 +181,8 @@ router.patch('/plans/:plan', requireAdmin, async (req, res) => {
     );
 
     res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -196,8 +194,8 @@ router.get('/settings', requireAdmin, async (req, res) => {
       result[s.key] = JSON.parse(s.value || '{}');
     }
     res.json(result);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

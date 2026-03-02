@@ -8,18 +8,12 @@ const {
   STRATEGIES,
   BACKTEST_CONFIG
 } = require('../services/backtesting');
-
-const ALLOWED_SYMBOLS = [
-  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT',
-  'SOLUSDT', 'DOGEUSDT', 'DOTUSDT', 'AVAXUSDT', 'MATICUSDT',
-  'LINKUSDT', 'ATOMUSDT', 'UNIUSDT', 'LTCUSDT', 'BCHUSDT',
-  'NEARUSDT', 'APTUSDT', 'ARBUSDT', 'OPUSDT', 'INJUSDT'
-];
+const { ALLOWED_SYMBOLS } = require('../utils/symbols');
 
 const ALLOWED_INTERVALS = ['1m', '5m', '15m', '1h', '4h', '1d'];
 
 router.get('/strategies', (req, res) => {
-  var strategies = Object.entries(STRATEGIES).map(([key, value]) => ({
+  const strategies = Object.entries(STRATEGIES).map(([key, value]) => ({
     id: key,
     name: value.name,
     description: value.description,
@@ -63,7 +57,7 @@ router.post('/run', async (req, res) => {
       });
     }
 
-    var result = await runBacktest({
+    const result = await runBacktest({
       symbol,
       interval: interval || '1h',
       days: parseInt(days) || 90,
@@ -76,10 +70,8 @@ router.post('/run', async (req, res) => {
     });
 
     res.json(result);
-
-  } catch (error) {
-    console.error('Backtest error:', error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -104,7 +96,7 @@ router.post('/run-with-analysis', async (req, res) => {
       return res.status(400).json({ error: 'Invalid strategy' });
     }
 
-    var result = await runBacktest({
+    const result = await runBacktest({
       symbol,
       interval: interval || '1h',
       days: parseInt(days) || 90,
@@ -122,27 +114,24 @@ router.post('/run-with-analysis', async (req, res) => {
       ...result,
       aiAnalysis
     });
-
-  } catch (error) {
-    console.error('Backtest with analysis error:', error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 router.get('/history', async (req, res) => {
   try {
-    var userId = req.user?.id;
+    const userId = req.user?.id;
     const limit = parseInt(req.query.limit) || 20;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    var history = await getBacktestHistory(userId, limit);
+    const history = await getBacktestHistory(userId, limit);
     res.json(history);
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -173,10 +162,8 @@ router.post('/optimize', async (req, res) => {
     );
 
     res.json(result);
-
-  } catch (error) {
-    console.error('Optimization error:', error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -209,9 +196,8 @@ router.post('/quick', async (req, res) => {
           profitFactor: result.metrics.profitFactor,
           tradesCount: result.tradesCount
         });
-
-      } catch (e) {
-        console.error(`Quick backtest error for ${strategyName}:`, e.message);
+      } catch (err) {
+        console.error(`Quick backtest error for ${strategyName}:`, err.message);
       }
     }
 
@@ -222,9 +208,8 @@ router.post('/quick', async (req, res) => {
       results,
       bestStrategy: results[0]
     });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

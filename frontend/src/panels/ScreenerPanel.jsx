@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useLang } from '../LangContext';
 import { useTheme } from '../ThemeContext';
 
-var getStyles = (theme) => ({
+const getStyles = (theme) => ({
   card: { background: theme.cardBg, border: '1px solid ' + theme.border, borderRadius: 12, padding: 20, marginBottom: 16 },
   inputStyle: { background: theme.inputBg, border: '1px solid ' + theme.border, borderRadius: 8, padding: '8px 12px', color: theme.text, fontSize: 13, fontFamily: "'Inter',sans-serif", width: 120 },
   btnStyle: (active) => ({ background: active ? theme.accent + '33' : 'transparent', border: '1px solid ' + (active ? theme.accent : theme.border), borderRadius: 8, padding: '8px 16px', color: active ? theme.accent : theme.textSecondary, cursor: 'pointer', fontSize: 13, fontFamily: "'Inter',sans-serif", transition: 'all 0.15s' }),
@@ -31,7 +31,7 @@ export default function ScreenerPanel() {
   const { t } = useLang();
   const { theme } = useTheme();
   const [data, setData] = useState([]);
-  var [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [sparklines, setSparklines] = useState({});
 
   const [filters, setFilters] = useState(() => {
@@ -64,8 +64,8 @@ export default function ScreenerPanel() {
 
       const pts = [];
       for (let i = 0; i < 12; i++) {
-        var progress = i / 11;
-        var noise = (Math.random() - 0.5) * Math.abs(price - startPrice) * 0.3;
+        const progress = i / 11;
+        const noise = (Math.random() - 0.5) * Math.abs(price - startPrice) * 0.3;
         pts.push(startPrice + (price - startPrice) * progress + noise);
       }
       sparks[tk.symbol] = pts;

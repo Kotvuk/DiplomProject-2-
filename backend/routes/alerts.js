@@ -43,8 +43,8 @@ router.get('/', async (req, res) => {
     const alerts = await db.getMany(query, params);
     res.json(alerts);
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -66,7 +66,7 @@ router.get('/triggered', async (req, res) => {
     const alerts = await db.getMany(query, params);
     res.json(alerts);
 
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ error: 'internal error' });
   }
 });
@@ -82,8 +82,8 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ ok: true });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

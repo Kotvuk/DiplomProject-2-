@@ -6,7 +6,7 @@ export default function ExportButtons({ type = 'trades', status }) {
   const { theme } = useTheme();
   const [exporting, setExporting] = useState(false);
 
-  var btnStyle = {
+  const btnStyle = {
     padding: '6px 14px',
     borderRadius: 6,
     border: '1px solid ' + theme.border,

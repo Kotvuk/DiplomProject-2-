@@ -1,7 +1,7 @@
 const db = require('../config/database');
 const { quickAnalysis, deepAnalysis } = require('../utils/groqKeys');
 
-var TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 let lastUpdateId = 0;
@@ -18,7 +18,7 @@ async function telegramRequest(method, params = {}) {
       body: JSON.stringify(params)
     });
 
-    var data = await response.json();
+    const data = await response.json();
 
     if (!data.ok) {
       console.error('[Telegram] API error:', data.description);
@@ -82,7 +82,7 @@ function formatSignal(signal) {
 }
 
 function formatAlert(alert) {
-  var condition = alert.condition === 'above' ? '⬆️ выше' : '⬇️ ниже';
+  const condition = alert.condition === 'above' ? '⬆️ выше' : '⬇️ ниже';
   const triggered = alert.status === 'triggered' ? '✅ СРАБОТАЛ!' : '⏳ Ожидание';
 
   return `
@@ -165,7 +165,7 @@ const COMMANDS = {
   async help(message) {
     const chatId = message.chat.id;
 
-    var text = `
+    const text = `
 <b>📚 Справка KotvukAI Bot</b>
 
 <b>📊 Цены и анализ:</b>
@@ -195,7 +195,7 @@ const COMMANDS = {
   },
 
   async price(message, args) {
-    var chatId = message.chat.id;
+    const chatId = message.chat.id;
     const symbol = args[0]?.toUpperCase() || 'BTCUSDT';
 
     try {
@@ -242,7 +242,7 @@ const COMMANDS = {
 
     try {
 
-      var response = await quickAnalysis(symbol, { type: 'signal' });
+      const response = await quickAnalysis(symbol, { type: 'signal' });
       const content = response?.choices?.[0]?.message?.content || 'Не удалось получить сигнал';
 
       const text = `

@@ -78,7 +78,7 @@ export default function LearningPanel() {
   const { theme } = useTheme();
   const [expanded, setExpanded] = useState(null);
 
-  var card = { background: theme.cardBg, border: '1px solid ' + theme.border, borderRadius: 12, padding: 20, cursor: 'pointer', transition: 'all 0.2s' };
+  const card = { background: theme.cardBg, border: '1px solid ' + theme.border, borderRadius: 12, padding: 20, cursor: 'pointer', transition: 'all 0.2s' };
 
   return (
     <div>

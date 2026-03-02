@@ -4,7 +4,7 @@ const push = require('../services/push');
 
 router.post('/subscribe', async (req, res) => {
   try {
-    var userId = req.user?.id;
+    const userId = req.user?.id;
     const { subscription } = req.body;
 
     if (!subscription || !subscription.endpoint) {
@@ -14,9 +14,8 @@ router.post('/subscribe', async (req, res) => {
     const result = await push.saveSubscription(userId, subscription);
     res.json(result);
 
-  } catch (e) {
-    console.error('Push subscribe error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -32,21 +31,19 @@ router.post('/unsubscribe', async (req, res) => {
     const result = await push.removeSubscription(userId, endpoint);
     res.json(result);
 
-  } catch (e) {
-    console.error('Push unsubscribe error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 router.get('/subscriptions', async (req, res) => {
   try {
     const userId = req.user?.id;
-    var subscriptions = await push.getUserSubscriptions(userId);
+    const subscriptions = await push.getUserSubscriptions(userId);
     res.json(subscriptions);
 
-  } catch (e) {
-    console.error('Get subscriptions error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -67,9 +64,8 @@ router.post('/test', async (req, res) => {
 
     res.json(result);
 
-  } catch (e) {
-    console.error('Push test error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -92,9 +88,8 @@ router.post('/send', async (req, res) => {
 
     res.json(result);
 
-  } catch (e) {
-    console.error('Push send error:', e);
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

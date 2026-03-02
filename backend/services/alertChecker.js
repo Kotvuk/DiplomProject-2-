@@ -10,7 +10,7 @@ async function checkAlerts() {
 
     const r = await fetch('https://api.binance.com/api/v3/ticker/price');
     const tmp = await r.json();
-    var priceMap = {};
+    const priceMap = {};
     tmp.forEach(p => { priceMap[p.symbol] = +p.price; });
 
     for (const alert of activeAlerts) {

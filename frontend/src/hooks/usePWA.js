@@ -7,7 +7,7 @@ export function usePWA() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [pushSupported, setPushSupported] = useState(false);
   const [pushSubscribed, setPushSubscribed] = useState(false);
-  var [registration, setRegistration] = useState(null);
+  const [registration, setRegistration] = useState(null);
 
   useEffect(() => {
 
@@ -85,7 +85,7 @@ export function usePWA() {
 
     try {
 
-      var response = await fetch('/api/push/vapid-key');
+      const response = await fetch('/api/push/vapid-key');
       const { publicKey } = await response.json();
 
       const subscription = await registration.pushManager.subscribe({
@@ -175,7 +175,7 @@ export function usePWA() {
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  var base64 = (base64String + padding)
+  const base64 = (base64String + padding)
     .replace(/-/g, '+')
     .replace(/_/g, '/');
 

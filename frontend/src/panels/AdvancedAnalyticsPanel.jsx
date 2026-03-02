@@ -57,13 +57,13 @@ export default function AdvancedAnalyticsPanel() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    var width = canvas.width;
+    const width = canvas.width;
     const height = canvas.height;
     const padding = 40;
 
     const values = data.map(d => d.daily_pnl);
     const min = Math.min(0, ...values);
-    var max = Math.max(0, ...values);
+    const max = Math.max(0, ...values);
     const range = max - min || 1;
 
     ctx.strokeStyle = theme === 'dark' ? '#333' : '#eee';
@@ -482,7 +482,7 @@ export default function AdvancedAnalyticsPanel() {
 }
 
 function MetricCard({ title, value, color = 'default' }) {
-  var colorClasses = {
+  const colorClasses = {
     green: 'text-green-400',
     red: 'text-red-400',
     default: 'text-white'

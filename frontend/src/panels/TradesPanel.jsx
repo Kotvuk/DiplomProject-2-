@@ -25,21 +25,21 @@ const ALL_PAIRS = [
 export default function TradesPanel() {
   const { t } = useLang();
   const { theme } = useTheme();
-  var styles = getStyles(theme);
+  const styles = getStyles(theme);
   const [pair, setPair] = useState('BTCUSDT');
   const [pairSearch, setPairSearch] = useState('');
-  var [showPairDropdown, setShowPairDropdown] = useState(false);
+  const [showPairDropdown, setShowPairDropdown] = useState(false);
   const [direction, setDirection] = useState('long');
   const [entryAmount, setEntryAmount] = useState('');
   const [entryPrice, setEntryPrice] = useState('');
-  var [tp, setTp] = useState('');
+  const [tp, setTp] = useState('');
   const [sl, setSl] = useState('');
   const [openTrades, setOpenTrades] = useState([]);
   const [closedTrades, setClosedTrades] = useState([]);
   const [stats, setStats] = useState({ totalPnl: 0, winRate: 0, avgPnl: 0, best: 0, worst: 0, total: 0 });
   const [prices, setPrices] = useState({});
 
-  var filteredPairs = useMemo(() => {
+  const filteredPairs = useMemo(() => {
     if (!pairSearch) return ALL_PAIRS;
     const q = pairSearch.toUpperCase();
     return ALL_PAIRS.filter(p => p.includes(q) || p.replace('USDT', '').includes(q));
@@ -72,7 +72,7 @@ export default function TradesPanel() {
 
   const fetchCurrentPrice = useCallback(async () => {
     try {
-      var r = await fetch(`/api/price?symbol=${pair}`);
+      const r = await fetch(`/api/price?symbol=${pair}`);
       const d = await r.json();
       if (d.price) setEntryPrice(d.price);
     } catch (e) { console.error(e); }

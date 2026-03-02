@@ -9,7 +9,7 @@ function formatAIText(text) {
     if (i % 2 === 1) return <strong key={i} style={{ color: 'inherit', fontWeight: 700 }}>{part}</strong>;
     const lines = part.split('\n');
     return lines.map((line, j) => {
-      var trimmed = line.trim();
+      const trimmed = line.trim();
       if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) return <div key={`${i}-${j}`} style={{ paddingLeft: 12 }}>• {trimmed.slice(2)}</div>;
       if (/^\d+\.\s/.test(trimmed)) return <div key={`${i}-${j}`} style={{ paddingLeft: 12 }}>{trimmed}</div>;
       return line ? <span key={`${i}-${j}`}>{line}{j < lines.length - 1 ? <br /> : null}</span> : (j < lines.length - 1 ? <br key={`${i}-${j}`} /> : null);
@@ -21,7 +21,7 @@ export default function AIChat() {
   const { t } = useLang();
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
-  var [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEnd = useRef(null);

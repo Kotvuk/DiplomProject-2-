@@ -14,18 +14,22 @@ router.get('/klines', async (req, res) => {
     const { symbol = 'BTCUSDT', interval = '1h', limit = 500 } = req.query;
     const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
     res.json(await r.json());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/ticker24h', async (req, res) => {
   try {
     const data = await getCached('ticker24h', 10000, async () => {
-      var r = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+      const r = await fetch('https://api.binance.com/api/v3/ticker/24hr');
       return r.json();
     });
     const pairs = ['BTCUSDT','ETHUSDT','BNBUSDT','XRPUSDT','ADAUSDT','SOLUSDT','DOGEUSDT','DOTUSDT','MATICUSDT','AVAXUSDT'];
     res.json(data.filter(t => pairs.includes(t.symbol)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/price', async (req, res) => {
@@ -34,7 +38,9 @@ router.get('/price', async (req, res) => {
     if (!symbol) return res.status(400).json({ error: 'symbol required' });
     const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
     res.json(await r.json());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/prices', async (req, res) => {
@@ -43,9 +49,11 @@ router.get('/prices', async (req, res) => {
     if (!symbols) return res.json([]);
     const list = symbols.split(',');
     const r = await fetch('https://api.binance.com/api/v3/ticker/price');
-    var data = await r.json();
+    const data = await r.json();
     res.json(data.filter(t => list.includes(t.symbol)));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/ticker24h/single', async (req, res) => {
@@ -57,14 +65,18 @@ router.get('/ticker24h/single', async (req, res) => {
       return r.json();
     });
     res.json(data);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/fng', async (req, res) => {
   try {
     const r = await fetch('https://api.alternative.me/fng/?limit=1');
     res.json(await r.json());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/exchangeInfo', async (req, res) => {
@@ -75,30 +87,38 @@ router.get('/exchangeInfo', async (req, res) => {
       .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING')
       .map(s => s.symbol);
     res.json(usdtPairs);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/heatmap', async (req, res) => {
   try {
-    var data = await getCached('heatmap', 30000, async () => {
+    const data = await getCached('heatmap', 30000, async () => {
       const r = await fetch('https://api.binance.com/api/v3/ticker/24hr');
       return r.json();
     });
-    var usdt = data.filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('UP') && !t.symbol.includes('DOWN'))
+    const usdt = data
+      .filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('UP') && !t.symbol.includes('DOWN'))
       .sort((a, b) => (+b.quoteVolume) - (+a.quoteVolume))
       .slice(0, 30);
     res.json(usdt);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/screener', async (req, res) => {
   try {
-    var r = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+    const r = await fetch('https://api.binance.com/api/v3/ticker/24hr');
     const data = await r.json();
-    const usdt = data.filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('UP') && !t.symbol.includes('DOWN'))
+    const usdt = data
+      .filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('UP') && !t.symbol.includes('DOWN'))
       .sort((a, b) => (+b.quoteVolume) - (+a.quoteVolume));
     res.json(usdt);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/level2', async (req, res) => {
@@ -106,7 +126,9 @@ router.get('/level2', async (req, res) => {
     const { symbol = 'BTCUSDT', limit = 1000 } = req.query;
     const r = await fetch(`https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=${Math.min(+limit, 5000)}`);
     res.json(await r.json());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/level2/spread', async (req, res) => {
@@ -119,7 +141,9 @@ router.get('/level2/spread', async (req, res) => {
     const spread = bestAsk - bestBid;
     const spreadPct = bestBid > 0 ? (spread / bestBid * 100) : 0;
     res.json({ symbol, bestBid, bestAsk, spread: +spread.toFixed(8), spreadPct: +spreadPct.toFixed(6) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/indicators', async (req, res) => {
@@ -130,7 +154,9 @@ router.get('/indicators', async (req, res) => {
     if (!Array.isArray(klines)) return res.status(500).json({ error: 'Failed to fetch klines' });
     const indicators = calcIndicators(klines);
     res.json({ symbol, interval, ...indicators });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/aggTrades', async (req, res) => {
@@ -138,7 +164,9 @@ router.get('/aggTrades', async (req, res) => {
     const { symbol = 'BTCUSDT', limit = 500 } = req.query;
     const r = await fetch(`https://api.binance.com/api/v3/aggTrades?symbol=${symbol}&limit=${Math.min(+limit, 1000)}`);
     res.json(await r.json());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

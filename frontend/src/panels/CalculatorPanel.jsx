@@ -5,7 +5,7 @@ import { useTheme } from '../ThemeContext';
 
 const cardAnim = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.3 } };
 
-var getStyles = (theme) => ({
+const getStyles = (theme) => ({
   card: { background: theme.cardBg, border: '1px solid ' + theme.border, borderRadius: 12, padding: 20, marginBottom: 16 },
   inputStyle: { width: '100%', background: theme.inputBg, border: '1px solid ' + theme.border, borderRadius: 8, padding: '10px 14px', color: theme.text, fontSize: 14, fontFamily: "'Inter',sans-serif", outline: 'none', boxSizing: 'border-box' },
   resultCard: (color) => ({ background: theme.cardBg, border: '1px solid ' + theme.border, borderRadius: 12, padding: 20, marginBottom: 16, borderLeft: `3px solid ${color}`, textAlign: 'center' }),
@@ -14,7 +14,7 @@ var getStyles = (theme) => ({
 function RiskGauge({ value, theme, t }) {
 
   const riskPct = Math.min(100, Math.max(0, value));
-  var angle = (riskPct / 100) * 180;
+  const angle = (riskPct / 100) * 180;
   const getColor = (pct) => pct <= 25 ? theme.green : pct <= 50 ? theme.yellow : pct <= 75 ? '#f97316' : theme.red;
   const color = getColor(riskPct);
 
@@ -44,7 +44,7 @@ export default function CalculatorPanel() {
   const { t } = useLang();
   const { theme } = useTheme();
 
-  var [deposit, setDeposit] = useState(() => { try { return JSON.parse(localStorage.getItem('calc_deposit')) || 10000; } catch { return 10000; } });
+  const [deposit, setDeposit] = useState(() => { try { return JSON.parse(localStorage.getItem('calc_deposit')) || 10000; } catch { return 10000; } });
   const [riskPct, setRiskPct] = useState(() => { try { return JSON.parse(localStorage.getItem('calc_risk')) || 2; } catch { return 2; } });
   const [entryPrice, setEntryPrice] = useState(() => { try { return JSON.parse(localStorage.getItem('calc_entry')) || 95000; } catch { return 95000; } });
   const [stopLoss, setStopLoss] = useState(() => { try { return JSON.parse(localStorage.getItem('calc_sl')) || 93000; } catch { return 93000; } });
@@ -62,7 +62,7 @@ export default function CalculatorPanel() {
   useEffect(() => { localStorage.setItem('calc_leverage', JSON.stringify(leverage)); }, [leverage]);
 
   const calc = useMemo(() => {
-    var riskAmount = deposit * (riskPct / 100);
+    const riskAmount = deposit * (riskPct / 100);
     const slDistance = Math.abs(entryPrice - stopLoss);
     const tpDistance = Math.abs(takeProfit - entryPrice);
     if (slDistance === 0 || entryPrice === 0) return null;

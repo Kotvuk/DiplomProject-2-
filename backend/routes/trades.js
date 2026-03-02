@@ -49,8 +49,8 @@ router.get('/', async (req, res) => {
     const trades = await db.getMany(query, params);
     res.json(trades);
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -63,7 +63,7 @@ router.get('/stats', async (req, res) => {
       [userId]
     );
 
-    var totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
+    const totalPnl = closed.reduce((s, t) => s + (t.pnl || 0), 0);
     const wins = closed.filter(t => (t.pnl || 0) > 0).length;
     const winRate = closed.length > 0 ? (wins / closed.length * 100) : 0;
     const avgPnl = closed.length > 0 ? totalPnl / closed.length : 0;
@@ -72,8 +72,8 @@ router.get('/stats', async (req, res) => {
 
     res.json({ totalPnl, winRate, avgPnl, best, worst, total: closed.length });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -94,7 +94,7 @@ router.post('/:id/close', async (req, res) => {
 
     if (!closePrice) {
       try {
-        var r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${trade.pair}`);
+        const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${trade.pair}`);
         const d = await r.json();
         closePrice = +d.price;
       } catch {
@@ -102,7 +102,7 @@ router.post('/:id/close', async (req, res) => {
       }
     }
 
-    var pnl = trade.direction === 'long'
+    const pnl = trade.direction === 'long'
       ? (closePrice - trade.entry_price) * trade.quantity
       : (trade.entry_price - closePrice) * trade.quantity;
 
@@ -113,8 +113,8 @@ router.post('/:id/close', async (req, res) => {
 
     res.json({ id: trade.id, pnl, close_price: closePrice });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -126,7 +126,7 @@ router.post('/calculator/risk', (req, res) => {
       return res.status(400).json({ error: 'balance, riskPercent, entryPrice, stopLoss required' });
     }
 
-    var riskAmount = balance * (riskPercent / 100);
+    const riskAmount = balance * (riskPercent / 100);
     const direction = entryPrice > stopLoss ? 'long' : 'short';
     const slDistance = Math.abs(entryPrice - stopLoss);
     const slPercent = (slDistance / entryPrice) * 100;
@@ -149,7 +149,7 @@ router.post('/calculator/risk', (req, res) => {
       rrRatio = +(tpDistance / slDistance).toFixed(2);
     }
 
-    var potentialLoss = riskAmount;
+    const potentialLoss = riskAmount;
     const potentialProfit = tpDistance ? positionSize * tpDistance : null;
 
     res.json({
@@ -166,8 +166,8 @@ router.post('/calculator/risk', (req, res) => {
       leverage
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

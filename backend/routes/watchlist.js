@@ -38,8 +38,8 @@ router.get('/', async (req, res) => {
       [userId]
     );
     res.json(watchlist);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -60,8 +60,8 @@ router.delete('/:id', async (req, res) => {
       [req.params.id, userId]
     );
     res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -25,7 +25,7 @@ export default function NewsPanel() {
     })();
   }, []);
 
-  var handleSummary = async (item, index) => {
+  const handleSummary = async (item, index) => {
     setSummarizing(p => ({ ...p, [index]: true }));
     try {
       const r = await fetch('/api/news/summary', {
@@ -38,7 +38,7 @@ export default function NewsPanel() {
         setSummarizing(p => ({ ...p, [index]: false }));
         return;
       }
-      var data = await r.json();
+      const data = await r.json();
       setSummaries(p => ({ ...p, [index]: data.summary || 'Error' }));
     } catch (e) {
       setSummaries(p => ({ ...p, [index]: 'Error: ' + e.message }));

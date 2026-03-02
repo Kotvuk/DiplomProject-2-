@@ -1,5 +1,5 @@
 const express = require('express');
-var router = express.Router();
+const router = express.Router();
 const db = require('../config/database');
 const { hashPassword, comparePassword, needsRehash, generateTokens, verifyRefreshToken } = require('../utils/crypto');
 const {
@@ -27,13 +27,14 @@ function checkLoginRateLimit(ip) {
   loginAttempts.set(key, attempts);
 
   if (attempts.count > 5) {
-    var waitTime = Math.ceil((attempts.resetAt - now) / 1000 / 60);
+    const waitTime = Math.ceil((attempts.resetAt - now) / 1000 / 60);
     return { blocked: true, waitTime };
   }
 
   return { blocked: false, attemptsLeft: 5 - attempts.count };
 }
 
+// чистим старые записи раз в минуту
 setInterval(() => {
   const now = Date.now();
   for (const [key, value] of loginAttempts.entries()) {
@@ -88,8 +89,8 @@ router.post('/register', async (req, res) => {
       }
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -102,7 +103,7 @@ router.post('/login', async (req, res) => {
     }
 
     const ip = req.ip || req.connection.remoteAddress;
-    var rateLimit = checkLoginRateLimit(ip);
+    const rateLimit = checkLoginRateLimit(ip);
 
     if (rateLimit.blocked) {
       return res.status(429).json({
@@ -155,6 +156,7 @@ router.post('/login', async (req, res) => {
       loginAttempts.delete(ip);
     }
 
+    // обновляем хеш пароля если алгоритм устарел
     if (needsRehash(user.password_hash)) {
       const newHash = await hashPassword(password);
       await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, user.id]);
@@ -177,8 +179,8 @@ router.post('/login', async (req, res) => {
       }
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -193,7 +195,7 @@ router.post('/refresh', async (req, res) => {
     let payload;
     try {
       payload = verifyRefreshToken(refreshToken);
-    } catch (e) {
+    } catch (err) {
       return res.status(401).json({ error: 'Invalid or expired refresh token' });
     }
 
@@ -217,8 +219,8 @@ router.post('/refresh', async (req, res) => {
       }
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -265,8 +267,8 @@ router.patch('/me', requireAuth, async (req, res) => {
       two_factor_enabled: !!updated.two_factor_enabled
     });
 
-  } catch (e) {
-    res.status(500).json({ error: 'Update failed' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -294,8 +296,8 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
       message: 'Отсканируйте QR код в Google Authenticator или Authy, затем введите код для подтверждения'
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -320,8 +322,8 @@ router.post('/2fa/verify', requireAuth, async (req, res) => {
 
     res.json({ success: true, message: '2FA успешно включена!' });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -346,8 +348,8 @@ router.post('/2fa/disable', requireAuth, async (req, res) => {
 
     res.json({ success: true, message: '2FA отключена' });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -389,8 +391,8 @@ router.post('/2fa/backup-codes', requireAuth, async (req, res) => {
       message: 'Сохраните эти коды в безопасном месте. Они показываются только один раз!'
     });
 
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
