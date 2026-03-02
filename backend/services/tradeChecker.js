@@ -1,5 +1,6 @@
 const db = require('../config/database');
 
+// проверка TP/SL для paper trading — вызывается периодически из server.js
 async function checkTradeTPSL() {
   try {
     const openTrades = await db.getMany(

@@ -3,12 +3,12 @@ const { selfAnalysis, reasoningAnalysis, quickAnalysis } = require('../utils/gro
 const { runBacktest, STRATEGIES } = require('./backtesting');
 
 const BOT_CONFIG = {
-  defaultCheckInterval: 60000,
+  defaultCheckInterval: 60000, // раз в минуту проверяем сигналы
   maxBotsPerUser: 5,
   minCapital: 100,
   maxLeverage: 10,
-  defaultRiskPerTrade: 2,
-  selfAnalysisInterval: 24 * 60 * 60 * 1000
+  defaultRiskPerTrade: 2, // процент капитала на сделку
+  selfAnalysisInterval: 24 * 60 * 60 * 1000 // самоанализ раз в сутки
 };
 
 const activeBots = new Map();
@@ -54,6 +54,7 @@ async function createBot(userId, options) {
     throw new Error(`Maximum ${BOT_CONFIG.maxBotsPerUser} bots per user`);
   }
 
+  // прогоняем бэктест за 30 дней перед созданием — если 0 сигналов, стратегия мертвая
   const backtestResult = await runBacktest({
     symbol,
     interval: '1h',
@@ -268,6 +269,7 @@ async function executeBot(bot) {
 
   const now = Date.now();
 
+  // дебаунс — не чаще раза в минуту, binance забанит по IP если спамить
   if (activeBot.lastRun && now - activeBot.lastRun < 60000) {
     return;
   }
@@ -419,6 +421,7 @@ async function checkExitSignal(bot, trade, signal, indicators) {
     }
   }
 
+  // реверс — закрываем позу если пришёл сильный обратный сигнал (conf >= 80)
   const isReverseSignal = (trade.direction === 'long' && signal.type === 'SELL') ||
                           (trade.direction === 'short' && signal.type === 'BUY');
 
@@ -536,6 +539,7 @@ async function performSelfAnalysis(botId) {
   };
 }
 
+// парсим AI-ответ регулярками — хрупко, но работает для структурированных ответов
 function extractOptimizationSuggestions(aiContent) {
   const suggestions = [];
 

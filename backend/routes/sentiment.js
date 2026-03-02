@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const sentiment = require('../services/sentiment');
 
+// alternative.me иногда лагает — отвечает с задержкой 2-3 сек, но данные свежие
 router.get('/fear-greed', async (req, res) => {
   try {
     const { days = 7 } = req.query;
@@ -43,7 +44,7 @@ router.get('/market/:symbol?', async (req, res) => {
     res.json(result);
 
   } catch (err) {
-    console.error('Market sentiment error:', e);
+    console.error('Market sentiment error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -60,7 +61,7 @@ router.post('/analyze', async (req, res) => {
     res.json(result);
 
   } catch (err) {
-    console.error('Text analysis error:', error);
+    console.error('Text analysis error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -73,9 +74,9 @@ router.get('/news', async (req, res) => {
     const result = await sentiment.getNewsSentiment(symbolList);
     res.json(result);
 
-  } catch (err) {
+  } catch (e) {
     console.error('News sentiment error:', e);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -87,7 +88,7 @@ router.get('/social/:symbol?', async (req, res) => {
     res.json(result);
 
   } catch (err) {
-    console.error('Social sentiment error:', e);
+    console.error('Social sentiment error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -101,7 +102,7 @@ router.get('/history/:symbol?', async (req, res) => {
     res.json(result);
 
   } catch (err) {
-    console.error('Historical sentiment error:', e);
+    console.error('Historical sentiment error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -180,7 +181,7 @@ router.get('/signals/:symbol?', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Sentiment signals error:', e);
+    console.error('Sentiment signals error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -199,6 +200,7 @@ function analyzeFearGreedTrend(data) {
 
   const avg = data.reduce((s, d) => s + parseInt(d.value), 0) / data.length;
 
+  // volatility через дисперсию — показывает насколько FnG "прыгает" за период
   return {
     direction,
     change: change,

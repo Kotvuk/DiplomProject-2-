@@ -86,6 +86,7 @@ async function getDailyPnL(userId, days = 30) {
   return filled;
 }
 
+// VaR — value at risk, берём 252 торговых дня (как на фондовом рынке, для крипты это условность)
 async function calculateVaR(userId, confidence = 0.95) {
 
   const query = `
@@ -116,6 +117,7 @@ async function calculateVaR(userId, confidence = 0.95) {
   const variance = returns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / returns.length;
   const stdDev = Math.sqrt(variance);
 
+  // z-score для 99% = 2.33, для 95% = 1.645 — из таблицы нормального распределения
   const zScore = confidence === 0.99 ? 2.33 : 1.645;
   const parametricVar = zScore * stdDev;
 
@@ -155,6 +157,7 @@ async function calculateSharpeRatio(userId, riskFreeRate = 0.04) {
   const variance = returns.reduce((a, b) => a + Math.pow(b - meanDaily, 2), 0) / (returns.length - 1);
   const stdDev = Math.sqrt(variance);
 
+  // аннуализация: * 252 для доходности, * sqrt(252) для волатильности
   const annualReturn = meanDaily * 252;
   const annualStdDev = stdDev * Math.sqrt(252);
   const dailyRiskFree = riskFreeRate / 252;
@@ -267,6 +270,7 @@ async function calculateMaxDrawdown(userId) {
   };
 }
 
+// корреляция PnL между парами — показывает диверсификацию портфеля
 async function getCorrelationMatrix(userId) {
 
   const query = `

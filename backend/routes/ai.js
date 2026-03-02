@@ -52,6 +52,7 @@ router.post('/analyze', async (req, res) => {
       }
     }
 
+    // BTC корреляция — большинство альтов ходят за битком, полезно для контекста
     let btcContext = '';
     if (symbol && symbol !== 'BTCUSDT') {
       try {
@@ -63,6 +64,7 @@ router.post('/analyze', async (req, res) => {
       } catch (e) { /* не страшно */ }
     }
 
+    // self-learning: тянем последние 10 сигналов чтобы модель видела свои ошибки
     const pastSignals = await db.getMany('SELECT * FROM signal_results ORDER BY created_at DESC LIMIT 10');
     let learningContext = '';
     if (pastSignals.length > 0) {

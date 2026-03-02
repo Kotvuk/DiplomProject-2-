@@ -167,6 +167,7 @@ router.post('/optimize', async (req, res) => {
   }
 });
 
+// quick — гоняет все стратегии за 30 дней и сортирует по ROI
 router.post('/quick', async (req, res) => {
   try {
     const { symbol } = req.body;

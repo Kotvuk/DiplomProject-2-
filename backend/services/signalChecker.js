@@ -35,6 +35,7 @@ async function generateReflection(signalId) {
   }
 }
 
+// проверяем все незакрытые сигналы — если цена дошла до TP/SL, фиксируем результат
 async function checkPendingSignals() {
   try {
     const pending = await db.getMany("SELECT * FROM signal_results WHERE result = 'pending'");
@@ -58,6 +59,7 @@ async function checkPendingSignals() {
         else if (sig.sl_price && currentPrice >= sig.sl_price) result = 'sl_hit';
       }
 
+      // если за 24 часа ни TP ни SL не сработали — таймаут
       if (!result) {
         const created = new Date(sig.created_at).getTime();
         if (Date.now() - created > 24 * 60 * 60 * 1000) result = 'timeout';

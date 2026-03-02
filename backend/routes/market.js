@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { calcIndicators } = require('../services/indicators');
 
+// простой кэш в памяти — хватает для одного инстанса, для кластера нужен redis
 const cache = new Map();
 function getCached(key, ttlMs, fetchFn) {
   const entry = cache.get(key);
@@ -92,6 +93,7 @@ router.get('/exchangeInfo', async (req, res) => {
   }
 });
 
+// heatmap кэшируем на 30 сек — данные всё равно не меняются так быстро
 router.get('/heatmap', async (req, res) => {
   try {
     const data = await getCached('heatmap', 30000, async () => {

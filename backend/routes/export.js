@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/database');
 const PDFDocument = require('pdfkit');
 
+// pdfkit любит падать если pipe закрыт раньше времени — ловим ошибки на doc
 router.get('/trades/pdf', async (req, res) => {
   try {
     const { status } = req.query;
@@ -41,6 +42,7 @@ router.get('/trades/pdf', async (req, res) => {
     doc.text(`Summary: Total PnL: $${totalPnl.toFixed(2)} | Win Rate: ${winRate}% | Wins: ${wins} | Losses: ${closed.length - wins}`, { align: 'left' });
     doc.moveDown(0.8);
 
+    // ширины колонок — подгонял пока не влезло в landscape A4 без обрезки
     const colWidths = [35, 70, 50, 55, 70, 65, 65, 65, 65, 50, 95];
     const headers = ['#', 'Pair', 'Dir', 'Qty', 'Entry', 'TP', 'SL', 'Close', 'PnL', 'Status', 'Date'];
     let x = 40;
@@ -60,7 +62,7 @@ router.get('/trades/pdf', async (req, res) => {
 
     doc.fontSize(7).font('Helvetica').fillColor('#000');
     trades.forEach((t, idx) => {
-      if (y > 530) {
+      if (y > 530) { // магическое число — нижний край A4 landscape минус отступ
         doc.addPage();
         y = 40;
       }
@@ -103,6 +105,7 @@ router.get('/trades/pdf', async (req, res) => {
   }
 });
 
+// аналитика попроще — без таблицы, просто статы текстом
 router.get('/analytics/pdf', async (req, res) => {
   try {
     const closed = await db.getMany("SELECT * FROM trades WHERE status = 'closed' ORDER BY closed_at DESC");

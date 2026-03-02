@@ -1,5 +1,6 @@
 const db = require('../config/database');
 
+// вызывается раз в 30 сек из server.js через setInterval
 async function checkAlerts() {
   try {
     const activeAlerts = await db.getMany(
@@ -8,6 +9,7 @@ async function checkAlerts() {
 
     if (activeAlerts.length === 0) return;
 
+    // тянем ВСЕ цены за один запрос, а не по одной — экономим лимиты binance
     const r = await fetch('https://api.binance.com/api/v3/ticker/price');
     const tmp = await r.json();
     const priceMap = {};

@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 
 const BINANCE_WS = 'wss://stream.binance.com:9443/ws';
 
+// одно соединение на все пары — binance рекомендует combined streams вместо N отдельных
 const DEFAULT_SYMBOLS = ['btcusdt', 'ethusdt', 'bnbusdt', 'xrpusdt', 'adausdt', 'solusdt', 'dogeusdt', 'dotusdt', 'avaxusdt'];
 
 let wss = null;
@@ -74,6 +75,7 @@ function setupWebSocket(server) {
   wss.on('connection', (ws) => {
     console.log('[WS] Client connected');
 
+    // сразу отдаём последние цены чтобы клиент не ждал следующий тик
     const snapshot = {
       type: 'snapshot',
       prices: latestPrices

@@ -16,7 +16,7 @@ const MODEL_GROUPS = {
       useCase: 'Глубокий анализ, backtesting, длинный контекст'
     }
   },
-  deepseek: {
+  maverick: {
     model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
     name: 'Llama 4 Maverick',
     description: '17B MoE (128 экспертов), 1M контекст, лучший для reasoning',
@@ -54,11 +54,11 @@ const MODEL_GROUPS = {
 
 const keyIndexes = {
   kimi: 0,
-  deepseek: 0,
+  maverick: 0,
   qwen: 0
 };
 
-const FALLBACK_ORDER = ['kimi', 'deepseek', 'qwen'];
+const FALLBACK_ORDER = ['kimi', 'maverick', 'qwen'];
 let currentFallbackIndex = 0;
 
 function getConfigForGroup(groupName) {
@@ -151,6 +151,7 @@ async function makeGroqRequest(key, model, messages, options = {}) {
   return data;
 }
 
+// перебирает группы моделей пока не получит ответ или не кончатся варианты
 async function groqRequestWithFallback(preferredGroup, messages, options = {}) {
   const tried = new Set();
   let currentGroup = preferredGroup;
@@ -231,7 +232,7 @@ async function reasoningAnalysis(question, ctx) {
     }
   ];
 
-  return groqRequestWithFallback('deepseek', messages, { maxTokens: 4000, temperature: 0.7 });
+  return groqRequestWithFallback('maverick', messages, { maxTokens: 4000, temperature: 0.7 });
 }
 
 async function quickAnalysis(sym, indicatorData) {
@@ -295,7 +296,7 @@ async function selfAnalysis(pastSignals, performanceMetrics) {
     }
   ];
 
-  return groqRequestWithFallback('deepseek', messages, {
+  return groqRequestWithFallback('maverick', messages, {
     maxTokens: 3000,
     temperature: 0.7
   });

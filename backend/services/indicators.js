@@ -1,3 +1,4 @@
+// классическая EMA: k = 2/(period+1), начальное значение = SMA за первые period свечей
 function calcEMA(closes, period) {
   if (closes.length < period) return null;
   const k = 2 / (period + 1);
@@ -21,6 +22,7 @@ function calcEMASeries(closes, period) {
   return series;
 }
 
+// RSI по Wilder (не SMA!) — разница с обычным RSI бывает до 10 пунктов
 function calcRSI(closes, period = 14) {
   if (closes.length < period + 1) return null;
   let gains = 0, losses = 0;
@@ -135,6 +137,7 @@ function calcMACDSeries(closes, fastPeriod = 12, slowPeriod = 26, signalPeriod =
   return { macdLine, signalLine, histogramLine };
 }
 
+// bollinger — SMA ± N*стандартное отклонение, по умолчанию 2 сигмы
 function calcBollingerBands(closes, period = 20, multiplier = 2) {
   if (closes.length < period) return null;
   const slice = closes.slice(-period);

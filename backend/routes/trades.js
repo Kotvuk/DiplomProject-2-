@@ -10,6 +10,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing fields' });
     }
 
+    // если пришёл entry_amount вместо quantity — пересчитываем
     const actualQuantity = entry_amount ? entry_amount / entry_price : quantity;
     if (!actualQuantity) {
       return res.status(400).json({ error: 'Missing quantity or entry_amount' });

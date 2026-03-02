@@ -2,11 +2,13 @@ const db = require('../config/database');
 const { analyzeBacktestResults, reasoningAnalysis } = require('../utils/groqKeys');
 const { calcEMASeries, calcRSISeries } = require('./indicators');
 
+// дефолты — подбирал экспериментально на BTC/ETH за последний год
+// feePercent 0.1 = тейкерная комса на binance спотe
 const BACKTEST_CONFIG = {
   defaultCapital: 5000,
   defaultPeriod: 90,
   feePercent: 0.1,
-  slippagePercent: 0.05,
+  slippagePercent: 0.05, // на реальном рынке может быть больше при малом объёме
   maxPositions: 3,
   riskPerTrade: 2,
   defaultStrategies: ['ema_cross', 'rsi_reversal', 'macd_signal', 'bollinger_breakout', 'support_resistance']
@@ -84,18 +86,20 @@ function calculateEMA(data, period) {
   return series.filter(v => v !== null);
 }
 
-// null впереди для offset-совместимости со стратегиями
+// не трогать! null впереди для offset-совместимости со стратегиями
+// если убрать — все индексы в стратегиях поедут
 function calculateRSI(closes, period = 14) {
   const series = calcRSISeries(closes, period);
   return [null, ...series];
 }
 
+// TODO: сделать периоды настраиваемыми, сейчас захардкожены 12/26/9
 function calculateMACD(closes) {
   const ema12 = calculateEMA(closes, 12);
   const ema26 = calculateEMA(closes, 26);
 
   const macdLine = [];
-  const offset = 26 - 12;
+  const offset = 26 - 12; // компенсируем разную длину EMA
 
   for (let i = 0; i < ema26.length; i++) {
     macdLine.push(ema12[i + offset] - ema26[i]);
@@ -130,6 +134,7 @@ function calculateBollinger(closes, period = 20, stdDev = 2) {
   return result;
 }
 
+// ATR по wilder — (prev * (n-1) + cur) / n, а не обычная SMA
 function calculateATR(klines, period = 14) {
   const trueRanges = [];
 
@@ -180,6 +185,7 @@ function findSupportResistance(highs, lows, closes) {
   return clusterLevels(levels, closes.length);
 }
 
+// кластеризация уровней — если два уровня ближе 2% друг к другу, объединяем
 function clusterLevels(levels, totalBars) {
   const tolerance = 0.02;
   const clusters = [];
@@ -207,6 +213,7 @@ function clusterLevels(levels, totalBars) {
     .slice(0, 10);
 }
 
+// момент выхода RSI из зоны — именно переход через границу, а не просто нахождение
 function checkRsiZoneExit(prev, curr, threshold, direction) {
   if (direction === 'oversold') return prev < threshold && curr >= threshold;
   return prev > threshold && curr <= threshold;
@@ -508,6 +515,7 @@ async function runBacktest(options) {
     userId = null
   } = options;
 
+  // TODO: добавить кэш для klines — одни и те же данные тянутся при каждом запуске
   console.log(`\nStarting backtest: ${strategyName} on ${symbol} ${interval} (${days} days)`);
 
   const klines = await loadHistoricalData(symbol, interval, days);
@@ -723,6 +731,7 @@ function calculateMetrics(trades, initialCapital) {
   const totalWins = wins.reduce((sum, t) => sum + t.netPnl, 0);
   const totalLosses = Math.abs(losses.reduce((sum, t) => sum + t.netPnl, 0));
 
+  // profitFactor = Infinity если нет убытков — потом клампим до 99.99 для фронта
   let profitFactor;
   if (totalLosses > 0) {
     profitFactor = totalWins / totalLosses;
