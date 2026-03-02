@@ -6,7 +6,7 @@
 
 Frontend — React 18 + Vite, графики через Lightweight Charts от TradingView.
 Backend — Node.js + Express, PostgreSQL на Neon.tech.
-AI — Groq API: Kimi K2, Llama 4 Maverick, Qwen 3 32B. 15 ключей с round-robin ротацией.
+AI — Groq API: Kimi K2, DeepSeek Maverick, Qwen 3 32B. 15 ключей с round-robin ротацией.
 Цены в реалтайме через WebSocket от Binance.
 
 JWT авторизация (access + refresh), bcrypt, есть 2FA.
@@ -42,7 +42,7 @@ cd frontend && npm i && npm run dev
 ## AI модели 🤖
 
 - Kimi K2 — глубокий анализ, бэктестинг
-- Llama 4 Maverick — reasoning, стратегии
+- DeepSeek Maverick — reasoning, стратегии
 - Qwen 3 32B — быстрые сигналы, чат
 
 Если ключ поймал 429 — автоматически переключается на следующий.
